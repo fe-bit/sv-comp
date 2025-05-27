@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Verification Task{% endblock %}
+
+{% block content %}
+    <h1>Verification Task Detail</h1>
+    <p>{{ task.name }}</p>
+    <p>Category: {{ task.category.name }}</p>
+    <h5>Best Benchmark</h5>
+    <table class="table table-striped table-bordered" id="tasksTable">
+        <thead>
+            <tr>
+                <th>Verifier</th>
+                <th>Status</th>
+                <th>Raw Core</th>
+                <th>CPU</th>
+                <th>Memory</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr data-category="best-benchmark">
+                <td>{{ best_benchmark.verifier.name }}</td>
+                <td>{{ best_benchmark.status }}</td>
+                <td>{{ best_benchmark.raw_core }}</td>
+                <td>{{ best_benchmark.cpu }}</td>
+                <td>{{ best_benchmark.memory }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <hr>
+    <h2>Benchmark Summary</h2>
+    <table class="table table-striped table-bordered" id="benchmarkSummaryTable">
+        <thead>
+            <tr>
+                <th>Status</th>
+                <th>Count</th>
+                <th>Avg CPU</th>
+                <th>Avg Memory</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for summary in benchmark_summary %}
+                <tr>
+                    <td>{{ summary.status }}</td>
+                    <td>{{ summary.count }}</td>
+                    <td>{{ summary.avg_cpu|floatformat:2 }}</td>
+                    <td>{{ summary.avg_memory|floatformat:2 }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="4">No Benchmarks available.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <hr>
+    <h5>All Benchmarks</h5>
+    <table class="table table-striped table-bordered" id="tasksTable">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Verifier</th>
+                <th>Status</th>
+                <th>Raw Core</th>
+                <th>CPU</th>
+                <th>Memory</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for benchmark in benchmarks %}
+                <tr data-category="{{ task.category.name }}">
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ benchmark.verifier.name }}</td>
+                    <td>{{ benchmark.status }}</td>
+                    <td>{{ benchmark.raw_core }}</td>
+                    <td>{{ benchmark.cpu }}</td>
+                    <td>{{ benchmark.memory }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="3">No benchmarks available.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

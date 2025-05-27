@@ -17,9 +17,16 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+from django.shortcuts import render
+
+
+def home(request):
+    return render(request, 'index.html')
+
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("verification-tasks/", include("verification_tasks.urls")),
     path("verifiers/", include("verifiers.urls")),
+    path("", home, name="home")
 ]

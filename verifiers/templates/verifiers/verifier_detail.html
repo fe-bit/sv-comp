@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Verifiers{% endblock %}
+
+{% block content %}
+    <h1>Verifier: {{ verifier.name }}</h1>
+
+    <h2>Benchmark Summary</h2>
+    <table class="table table-striped table-bordered" id="benchmarkSummaryTable">
+        <thead>
+            <tr>
+                <th>Status</th>
+                <th>Count</th>
+                <th>Avg CPU</th>
+                <th>Avg Memory</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for summary in benchmark_summary %}
+                <tr>
+                    <td>{{ summary.status }}</td>
+                    <td>{{ summary.count }}</td>
+                    <td>{{ summary.avg_cpu|floatformat:2 }}</td>
+                    <td>{{ summary.avg_memory|floatformat:2 }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="4">No Benchmarks available.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+
+    <button class="btn btn-primary mb-3" id="downloadBtn">Download CSV</button>
+    <table class="table table-striped table-bordered" id="benchmarksTable">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Verification Category</th>
+                <th>Verification Task</th>
+                <th>Status</th>
+                <th>Raw Core</th>
+                <th>CPU</th>
+                <th>Memory</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for benchmark in benchmarks %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ benchmark.verification_task.category.name }}</td>
+                    <td>{{ benchmark.verification_task.name }}</td>
+                    <td>{{ benchmark.status }}</td>
+                    <td>{{ benchmark.raw_core }}</td>
+                    <td>{{ benchmark.cpu }}</td>
+                    <td>{{ benchmark.memory }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="6">No Benchmarks available.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('downloadBtn').addEventListener('click', function () {
+    let table = document.getElementById('benchmarksTable');
+    let rows = Array.from(table.querySelectorAll('tr'));
+    let csv = rows.map(row => 
+        Array.from(row.querySelectorAll('th,td'))
+            .map(cell => '"' + cell.innerText.replace(/"/g, '""') + '"')
+            .join(',')
+    ).join('\n');
+
+    let blob = new Blob([csv], { type: 'text/csv' });
+    let url = window.URL.createObjectURL(blob);
+
+    let a = document.createElement('a');
+    a.href = url;
+    a.download = 'benchmarks.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+});
+</script>
+{% endblock %}

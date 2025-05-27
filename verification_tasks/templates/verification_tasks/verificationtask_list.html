@@ -16,12 +16,14 @@
     <div class="mb-3">
         <span id="rowCountLabel" class="badge bg-primary"></span>
     </div>
+    <button class="btn btn-primary mb-3" id="downloadBtn">Download CSV</button>
     <table class="table table-striped table-bordered" id="tasksTable">
         <thead>
             <tr>
                 <th>#</th>
                 <th>Category</th>
                 <th>Name</th>
+                <th>Best Verifier</th>
             </tr>
         </thead>
         <tbody>
@@ -29,7 +31,8 @@
                 <tr data-category="{{ task.category.name }}">
                     <td>{{ forloop.counter }}</td>
                     <td>{{ task.category.name }}</td>
-                    <td>{{ task.name }}</td>
+                    <td><a href="{% url 'verification_task_detail' id=task.id %}">{{ task.name }}</a></td>
+                    <td>{{task.best_benchmark.verifier.name |default:'-'}}</td>
                 </tr>
             {% empty %}
                 <tr>
@@ -85,5 +88,26 @@
             updateRowCount();
         });
     });
+
+document.getElementById('downloadBtn').addEventListener('click', function () {
+    let table = document.getElementById('tasksTable');
+    let rows = Array.from(table.querySelectorAll('tr'));
+    let csv = rows.map(row => 
+        Array.from(row.querySelectorAll('th,td'))
+            .map(cell => '"' + cell.innerText.replace(/"/g, '""') + '"')
+            .join(',')
+    ).join('\n');
+
+    let blob = new Blob([csv], { type: 'text/csv' });
+    let url = window.URL.createObjectURL(blob);
+
+    let a = document.createElement('a');
+    a.href = url;
+    a.download = 'verification_tasks.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+});
 </script>
 {% endblock %}

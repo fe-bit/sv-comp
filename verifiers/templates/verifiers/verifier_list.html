@@ -15,7 +15,7 @@
             {% for verifier in verifiers %}
                 <tr>
                     <td>{{ forloop.counter }}</td>
-                    <td>{{ verifier.name }}</td>
+                    <td><a href="{% url 'verifier_detail' id=verifier.id %}">{{ verifier.name }}</a></td>
                 </tr>
             {% empty %}
                 <tr>

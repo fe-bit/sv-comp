@@ -9,7 +9,7 @@ def get_virtually_best_benchmark(benchmarks: BaseManager[Benchmark]) -> Optional
     Returns the verifier that has the best performance for the given verification task.
     If no benchmarks are available, returns None.
     """
-    benchmarks = benchmarks.filter(status__icontains="true").order_by("cpu", "memory")
+    benchmarks = benchmarks.filter(is_correct=True).order_by("cpu", "memory")
     
     if not benchmarks:
         return None

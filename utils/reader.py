@@ -5,6 +5,7 @@ import os
 urls = [
     "https://sv-comp.sosy-lab.org/2025/results/results-verified/META_MemSafety.table.html#/table",
     "https://sv-comp.sosy-lab.org/2025/results/results-verified/META_ReachSafety.table.html#/table",
+    "https://sv-comp.sosy-lab.org/2025/results/results-verified/META_ConcurrencySafety.table.html#/table",
 ]
 
 def get_file(url: str, output_dir: str) -> str:
@@ -128,8 +129,11 @@ def get_verification_results(url, output_dir="tables") -> VerificationResults:
     
 class SVCOMP:
     def __init__(self):
-        self.mem_safety = get_verification_results(urls[0])
-        self.reach_safety = get_verification_results(urls[1])
+        self.data = {
+            "mem_safety": get_verification_results(urls[0]),
+            "reach_safety": get_verification_results(urls[1]),
+            "concurrency_safety": get_verification_results(urls[2])
+        }
 
     def summary(self) -> str:
         return f"""SV-COMP25:
@@ -137,6 +141,8 @@ MemSafety:
 {self.mem_safety.summary(indent=1)}
 ReachSafety: 
 {self.reach_safety.summary(indent=1)}
+ConcurrencySafety: 
+{self.concurrency_safety.summary(indent=1)}
 """
     
     def get_training_data(self) -> dict:

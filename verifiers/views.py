@@ -13,7 +13,7 @@ def verifier_detail(request, id: int):
     benchmarks = Benchmark.objects.filter(verifier=verifier)
     benchmark_summary = (
         benchmarks
-        .values('status')
+        .values('status_display')
         .annotate(
             count=Count('id'),
             avg_cpu=Avg('cpu'),
@@ -23,6 +23,7 @@ def verifier_detail(request, id: int):
     )
     return render(request, 'verifiers/verifier_detail.html', {
         'verifier': verifier, 
-        "benchmarks": benchmarks,
-        "benchmark_summary": benchmark_summary
+        "benchmarks": benchmarks.order_by('is_correct'),
+        "benchmark_summary": benchmark_summary,
+        "correct_benchmarks": benchmarks.filter(is_correct=True).order_by('cpu', 'memory'),
     })

@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 from verification_tasks.models import VerificationCategory, VerificationTask
 from verifiers.models import Verifier
-from benchmarks.models import Benchmark, VerificationSpecification
+from benchmarks.models import Benchmark, VerificationSpecification, status_from_string
 from utils.reader import get_svcomp, SVCOMP
 from datetime import datetime
 from dateutil import parser
@@ -10,7 +10,7 @@ from tqdm import tqdm
 def re_add_verification_tasks(tasks, category: VerificationCategory):
     VerificationTask.objects.filter(category=category).delete()
     new_tasks = [
-        VerificationTask(name=vt.name, category=category)
+        VerificationTask(name=vt.name, category=category, expected_result=VerificationTask.extract_expected_result(vt.name))
         for vt in tasks
     ]
     if new_tasks:
@@ -43,7 +43,7 @@ def benchmarks(sv_comp: SVCOMP) -> None:
         task_map = {t.name: t for t in VerificationTask.objects.all()}
         verifier_map = {v.name: v for v in Verifier.objects.all()}
         spec_map = {s.name: s for s in VerificationSpecification.objects.all()}
-        
+        benchmarks_to_insert = []
         for benchmark in tqdm(verification_results):
             vt_name = benchmark.verification_task.name
             verifier_name = benchmark.verifier.verifier_name
@@ -57,31 +57,29 @@ def benchmarks(sv_comp: SVCOMP) -> None:
             if isinstance(test_date, str):
                 test_date = parser.parse(test_date)
             
+            status_display = status_from_string(benchmark.status)
+            is_correct = verification_task.expected_result == status_display
+            
             b = Benchmark(
                 verification_task=verification_task,
                 verifier=verifier,
                 status=benchmark.status,
-                raw_core=benchmark.raw_core,
+                raw_score=benchmark.raw_core,
                 cpu=benchmark.cpu,
                 memory=benchmark.memory,
                 test_date=test_date,
+                is_correct=is_correct,
+                status_display=status_display
             )
 
             if str(b) in benchmarks:
                 benchmarks.remove(str(b))
                 continue
-            
-            b.save()
-            # VerificationSpecification handling
-            verification_specs = []
-            for spec in benchmark.verifier.verification_specs:
-                if spec not in spec_map:
-                    spec_obj, _ = VerificationSpecification.objects.get_or_create(name=spec)
-                    spec_map[spec] = spec_obj
-                verification_specs.append(spec_map[spec])
+            else:
+                benchmarks_to_insert.append(b)
+        
+        Benchmark.objects.bulk_create(benchmarks_to_insert)
 
-            b.verification_specs.set(verification_specs)
-            b.save()
 
 class Command(BaseCommand):
     help = "Closes the specified poll for voting"

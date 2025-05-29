@@ -13,13 +13,7 @@ def get_file(url: str, output_dir: str) -> str:
 
 from pydantic import BaseModel, PrivateAttr, computed_field
 import os
-from bs4 import BeautifulSoup
 from typing import List, Optional
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-import time
 
 
 class Verifier(BaseModel):
@@ -56,7 +50,6 @@ class Verifier(BaseModel):
         if len(self._verification_specs) == 0:
             self.load_data()
         return self._verification_specs
-
 
 class VerificationTask(BaseModel):
     name: str
@@ -129,7 +122,11 @@ def get_verification_results(url, output_dir="tables") -> VerificationResults:
     
 class SVCOMP:
     def __init__(self):
-        self.data = {
+        from .sv_comp_scraper import save_all_pages
+        for url in urls:
+            save_all_pages(url, "tables", overwrite=False)
+        
+        self.data: dict[str, VerificationResults] = {
             "mem_safety": get_verification_results(urls[0]),
             "reach_safety": get_verification_results(urls[1]),
             "concurrency_safety": get_verification_results(urls[2])
@@ -138,21 +135,25 @@ class SVCOMP:
     def summary(self) -> str:
         return f"""SV-COMP25:
 MemSafety: 
-{self.mem_safety.summary(indent=1)}
+{self.data["mem_safety"].summary(indent=1)}
 ReachSafety: 
-{self.reach_safety.summary(indent=1)}
+{self.data["reach_safety"].summary(indent=1)}
 ConcurrencySafety: 
-{self.concurrency_safety.summary(indent=1)}
+{self.data["concurrency_safety"].summary(indent=1)}
 """
     
     def get_training_data(self) -> dict:
         grouped_by_verifier = defaultdict(list)
 
-        for result in self.mem_safety.verification_results:
+        for result in self.data["mem_safety"].verification_results:
             key = result.verifier.verifier_name
             grouped_by_verifier[key].append(result)
         
-        for result in self.reach_safety.verification_results:
+        for result in self.data["reach_safety"].verification_results:
+            key = result.verifier.verifier_name
+            grouped_by_verifier[key].append(result)
+
+        for result in self.data["concurrency_safety"].verification_results:
             key = result.verifier.verifier_name
             grouped_by_verifier[key].append(result)
 

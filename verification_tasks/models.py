@@ -75,4 +75,15 @@ class VerificationTask(models.Model):
                 return clean_i_file_for_pycparser(file.read())
         return None
     
+    @classmethod
+    def extract_expected_result(cls, name: str) -> str:
+        name = name.replace("(valid-deref)", "")
+        name = name.replace("(valid-memtrack)", "")
+        name = name.replace("(valid-free)", "")
+        if name.endswith("true"):
+            return Status.TRUE
+        elif name.endswith("false"):
+            return Status.FALSE
+        else:
+            return Status.INVALID_TASK
     

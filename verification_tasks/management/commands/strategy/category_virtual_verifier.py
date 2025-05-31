@@ -14,9 +14,10 @@ def evaluate_category_best_verifier(vts_train: list[VerificationTask], vts_test:
             .annotate(
                 total_raw_score=Sum('raw_score'),
                 total_cpu=Sum('cpu'),
-                total_memory=Sum('memory')
+                total_memory=Sum('memory'),
+                total_correct=Sum("is_correct")
             )
-            .order_by('-total_raw_score')
+            .order_by('-total_correct', "total_cpu")
         )[0]
         vc_lookup[vc] = Verifier.objects.get(id=v["verifier"])
 

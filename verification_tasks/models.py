@@ -56,10 +56,10 @@ class VerificationTask(models.Model):
             return None
         
     def get_c_file_path(self) -> Path:
-        return self.yml_file_path.parent / Path(self.get_yml_config().get("input_files")).with_stem(".c")
+        return self.yml_file_path.parent / Path(self.get_yml_config().get("input_files")).with_suffix(".c")
     
     def get_i_file_path(self) -> Path:
-        return self.yml_file_path.parent / Path(self.get_yml_config().get("input_files")).with_stem(".i")
+        return self.yml_file_path.parent / Path(self.get_yml_config().get("input_files")).with_suffix(".i")
 
     def read_c_file(self) -> str | None:
         c_file_path = self.get_c_file_path()
@@ -69,10 +69,10 @@ class VerificationTask(models.Model):
         return None
     
     def read_i_file(self) -> str | None:
-        c_file_path = self.get_c_file_path()
+        c_file_path = self.get_i_file_path()
         if c_file_path.exists():
             with open(c_file_path, 'r') as file:
-                return clean_i_file_for_pycparser(file.read())
+                return file.read()
         return None
     
     @classmethod

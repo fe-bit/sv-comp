@@ -66,7 +66,7 @@
                 <tr data-category="{{ task.category.name }}">
                     <td>{{ forloop.counter }}</td>
                     <td>{{ benchmark.verifier.name }}</td>
-                    <td>{{ benchmark.status }}</td>
+                    <td>{{ benchmark.status }} ({{ benchmark.is_correct}})</td>
                     <td>{{ benchmark.raw_score }}</td>
                     <td>{{ benchmark.cpu }}</td>
                     <td>{{ benchmark.memory }}</td>
@@ -97,7 +97,7 @@
                 <tr data-category="{{ task.category.name }}">
                     <td>{{ forloop.counter }}</td>
                     <td>{{ benchmark.verifier.name }}</td>
-                    <td>{{ benchmark.status }}</td>
+                    <td>{{ benchmark.status }} ({{ benchmark.is_correct}})</td>
                     <td>{{ benchmark.raw_score }}</td>
                     <td>{{ benchmark.cpu }}</td>
                     <td>{{ benchmark.memory }}</td>

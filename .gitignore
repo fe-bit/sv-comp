@@ -2,3 +2,6 @@ db.sqlite3
 *.pyc
 tables/
 *.csv
+chroma_db/
+output/
+*.ipynb

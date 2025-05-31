@@ -85,13 +85,17 @@ class Command(BaseCommand):
     help = "Closes the specified poll for voting"
 
     def handle(self, *args, **options):
+        # SVCOMP.save_all_pages()
         sv_comp: SVCOMP = get_svcomp()
         
         categories = {
             "mem_safety": VerificationCategory.objects.get_or_create(name="MemSafety")[0],
             "reach_safety": VerificationCategory.objects.get_or_create(name="ReachSafety")[0],
             "concurrency_safety": VerificationCategory.objects.get_or_create(name="ConcurrencySafety")[0],
+            "no_overflows": VerificationCategory.objects.get_or_create(name="NoOverflows")[0],
+            "termination": VerificationCategory.objects.get_or_create(name="Termination")[0],
         }
+        
         verification_tasks(sv_comp, categories)
         verifiers(sv_comp)
         benchmarks(sv_comp)

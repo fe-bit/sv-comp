@@ -7,7 +7,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
-from .reader import VerificationResults, VerifierResult, Verifier, VerificationTask
+from .reader import VerificationResults, VerifierResult, Verifier, VerificationTask, get_file
 
 
 def get_table(soup: BeautifulSoup) -> VerificationResults:

@@ -5,41 +5,44 @@ from verification_tasks.embedding.query import query_verification_task
 from verification_tasks.utils import get_virtually_best_benchmark
 from benchmarks.models import Benchmark
 from tqdm import tqdm
-from verification_tasks.embedding.config import get_test_collection, get_collection, get_train_collection
+from verification_tasks.embedding.config import get_test_collection, get_collection
 
 
 
-def evaluate_knn_5_majority_vote_best_verifier(vts_train: list[int], vts_test: list[int]) -> EvaluationStrategySummary:
+def evaluate_knn_5_distance_weighted(vts_train: list[int], vts_test: list[int]) -> EvaluationStrategySummary:
     summary = EvaluationStrategySummary()
-    train_collection, test_collection = get_train_collection(), get_test_collection()
-    for vt_id in tqdm(vts_test, desc="Processing KNN-5 Majority Vote"):
+    train_collection, test_collection = get_collection(), get_test_collection()
+    
+    for vt_id in tqdm(vts_test, desc="Processing KNN-5 Distance-Weighted"):
         # Get 5 closest verification tasks
         vt = VerificationTask.objects.get(id=vt_id)
         vt_closest = query_verification_task(vt, n_results=5, collection=test_collection, collection_query=train_collection)
         if vt_closest is None:
             continue
+        
         # Extract best verifiers from closest tasks
-        verifiers = []
+        verifiers = {}
         for vt_c in vt_closest:
             vt_c_obj = vt_c["verification_task"]
+            # Convert distance to weight (closer tasks have higher weight)
+            # Add small epsilon to avoid division by zero
+            distance = vt_c["distance"] + 1e-10
+            weight = 1.0 / distance  # Inverse distance weighting
+            
             benchmarks_of_vt_closest = Benchmark.objects.filter(verification_task=vt_c_obj)
             best_benchmark = get_virtually_best_benchmark(benchmarks_of_vt_closest)
             if best_benchmark is None:
                 continue
-            verifiers.append(best_benchmark.verifier)
+
+            # Add weight to verifier's score
+            verifier = best_benchmark.verifier
+            verifiers[verifier] = verifiers.get(verifier, 0) + weight
         
-        if len(verifiers) == 0:
+        if not verifiers:
             continue
-        # Count verifier occurrences and find the most common
-        verifier_counts = Counter(verifiers)
-        most_common_verifiers = verifier_counts.most_common()
         
-        # Find all verifiers with the maximum count
-        max_count = most_common_verifiers[0][1]
-        top_verifiers = [v for v, count in most_common_verifiers if count == max_count]
-        
-        # Choose the first one with maximum count
-        chosen_verifier = top_verifiers[0]
+        # Find verifier with highest weight score
+        chosen_verifier = max(verifiers.items(), key=lambda x: x[1])[0]
         
         # Get benchmark for the chosen verifier
         benchmark = Benchmark.objects.filter(

@@ -3,23 +3,29 @@ import re
 import textwrap
 from transformers import AutoModel, AutoTokenizer
 import torch
-from chromadb import PersistentClient, Collection
+from chromadb import Collection
 from tqdm import tqdm
 from .config import get_collection
 
 tokenizer = AutoTokenizer.from_pretrained("microsoft/codebert-base")
 model = AutoModel.from_pretrained("microsoft/codebert-base")
 
-def embed_verifications_tasks(vts: list[VerificationTask]):
-    collection = get_collection()
+def embed_verifications_tasks(vts: list[int], collection=get_collection(), only_use_c: bool=False):
+    vts = VerificationTask.objects.filter(id__in=vts)
     for vt in tqdm(vts):
-        embed_verification_task(vt, collection)
+        try:
+            embed_verification_task(vt, collection, only_use_c)
+        except Exception as e:
+            pass
+            # print("Error occured with", vt.name)
 
 def embed_code(code: str):
     cleaned = remove_c_comments(code)
     normalized = normalize_whitespace(cleaned)
     functions = extract_c_functions_no_regex(normalized)
     chunks = tokenize_and_chunk(functions, tokenizer)
+    if chunks is None:
+        return None
     embeddings = []
     for chunk in chunks:
         inputs = tokenizer(chunk, return_tensors="pt", truncation=True, max_length=512)
@@ -32,7 +38,7 @@ def embed_code(code: str):
     return final_embedding
 
 
-def embed_verification_task(vt: VerificationTask, collection: Collection=None):
+def embed_verification_task(vt: VerificationTask, collection: Collection=None, only_use_c: bool=False):
     if collection is None:
         collection = get_collection()
 
@@ -44,6 +50,8 @@ def embed_verification_task(vt: VerificationTask, collection: Collection=None):
         file = vt.get_c_file_path()
         file_type = "c"
     elif vt.get_i_file_path().exists():
+        if only_use_c:
+            return
         file = vt.get_i_file_path()
         file_type = "i"
     else:
@@ -52,6 +60,8 @@ def embed_verification_task(vt: VerificationTask, collection: Collection=None):
     code = open(file).read()
     
     final_embedding = embed_code(code)
+    if final_embedding is None:
+        return
     
     collection.add(
         documents=[code],
@@ -152,8 +162,12 @@ def tokenize_and_chunk(functions, tokenizer, max_length=512):
         tokens = tokenizer(fn, return_tensors="pt", truncation=False)["input_ids"][0]
         if len(tokens) <= max_length:
             chunks.append(fn)
+            # if len(chunks) > 10:
+            #     return
         else:
             for i in range(0, len(tokens), max_length - 64):  # overlap
                 chunk = tokenizer.decode(tokens[i:i + max_length])
                 chunks.append(chunk)
+                # if len(chunks) > 10:
+                #     return
     return chunks

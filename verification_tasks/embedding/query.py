@@ -37,25 +37,26 @@ def query(code: str, category: VerificationCategory, n_results: int = 5, include
         for result_id, distance in zip(results["ids"][0], results["distances"][0])
     ]
 
-def query_verification_task(vt: VerificationTask, n_results: int = 5, include_vts: list[VerificationTask]=None) -> list[dict]:
-    collection = get_collection()
+def query_verification_task(vt: VerificationTask, n_results: int = 5, include_vts: list[VerificationTask]=None, collection=None, collection_query=None) -> list[dict]:
     vt_query = collection.get(
             ids=[str(vt.id)],
             include=["embeddings"],
     )
-    assert vt_query["ids"][0] == str(vt.id)
+    if len(vt_query["ids"]) == 0 or vt_query["ids"][0] != str(vt.id):
+        return None
+
     embedding = vt_query["embeddings"][0]
     
     if include_vts is None:
-        results = collection.query(
+        results = collection_query.query(
             query_embeddings=embedding,
             n_results=n_results,
             where={
-                "verification_category": category.name
+                "verification_category": vt.category.name
             }
         )
     else:
-        results = collection.query(
+        results = collection_query.query(
             query_embeddings=embedding,
             n_results=n_results,
             where={

@@ -5,3 +5,4 @@ tables/
 chroma_db/
 output/
 *.ipynb
+.DS_STORE

@@ -10,6 +10,8 @@ from .config import get_collection
 tokenizer = AutoTokenizer.from_pretrained("microsoft/codebert-base")
 model = AutoModel.from_pretrained("microsoft/codebert-base")
 
+# model.to("mps")
+
 def embed_verifications_tasks(vts: list[int], collection=get_collection(), only_use_c: bool=False):
     vts = VerificationTask.objects.filter(id__in=vts)
     for vt in tqdm(vts):
@@ -29,6 +31,7 @@ def embed_code(code: str):
     embeddings = []
     for chunk in chunks:
         inputs = tokenizer(chunk, return_tensors="pt", truncation=True, max_length=512)
+        # inputs.to("mps")
         with torch.no_grad():
             output = model(**inputs)
             emb = output.last_hidden_state[:, 0, :]  # CLS token

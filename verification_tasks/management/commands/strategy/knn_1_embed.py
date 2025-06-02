@@ -6,10 +6,8 @@ from benchmarks.models import Benchmark
 from tqdm import tqdm
 from verification_tasks.embedding.config import get_test_collection, get_collection, get_train_collection
 
-def evaluate_knn_1_best_verifier(vts_test: list[int]) -> EvaluationStrategySummary:
+def evaluate_knn_1_best_verifier(vts_test: list[int], train_collection, test_collection) -> EvaluationStrategySummary:
     summary = EvaluationStrategySummary()
-    test_collection = get_test_collection()
-    train_collection = get_train_collection()
 
     for vt_id in tqdm(vts_test, desc="Processing KNN-1"):
         vt = VerificationTask.objects.get(id=vt_id)

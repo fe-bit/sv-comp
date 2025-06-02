@@ -4,50 +4,42 @@ from .data import EvaluationStrategySummary
 from verification_tasks.embedding.query import query_verification_task
 from verification_tasks.utils import get_virtually_best_benchmark
 from benchmarks.models import Benchmark
+from django.db.models import Count, Avg, Sum
 from tqdm import tqdm
 from verification_tasks.embedding.config import get_test_collection, get_collection, get_train_collection
 
 
 
-def evaluate_knn_5_majority_vote_best_verifier(vts_train: list[int], vts_test: list[int]) -> EvaluationStrategySummary:
+def evaluate_knn_5_majority_vote_best_verifier(vts_test: list[int], train_collection, test_collection) -> EvaluationStrategySummary:
     summary = EvaluationStrategySummary()
-    train_collection, test_collection = get_train_collection(), get_test_collection()
     for vt_id in tqdm(vts_test, desc="Processing KNN-5 Majority Vote"):
         # Get 5 closest verification tasks
         vt = VerificationTask.objects.get(id=vt_id)
         vt_closest = query_verification_task(vt, n_results=5, collection=test_collection, collection_query=train_collection)
         if vt_closest is None:
             continue
-        # Extract best verifiers from closest tasks
-        verifiers = []
-        for vt_c in vt_closest:
-            vt_c_obj = vt_c["verification_task"]
-            benchmarks_of_vt_closest = Benchmark.objects.filter(verification_task=vt_c_obj)
-            best_benchmark = get_virtually_best_benchmark(benchmarks_of_vt_closest)
-            if best_benchmark is None:
-                continue
-            verifiers.append(best_benchmark.verifier)
-        
-        if len(verifiers) == 0:
+
+        benchmarks = Benchmark.objects.filter(verification_task__in=[vt_c["verification_task"] for vt_c in vt_closest], is_correct=True)
+        if benchmarks.count() == 0:
             continue
-        # Count verifier occurrences and find the most common
-        verifier_counts = Counter(verifiers)
-        most_common_verifiers = verifier_counts.most_common()
-        
-        # Find all verifiers with the maximum count
-        max_count = most_common_verifiers[0][1]
-        top_verifiers = [v for v, count in most_common_verifiers if count == max_count]
-        
-        # Choose the first one with maximum count
-        chosen_verifier = top_verifiers[0]
-        
-        # Get benchmark for the chosen verifier
-        benchmark = Benchmark.objects.filter(
-            verification_task=vt, 
-            verifier=chosen_verifier
-        ).first()
+
+        benchmark_summary = (
+            benchmarks
+            .values('verifier')
+            .annotate(
+                correct_count=Count('is_correct'),
+                avg_cpu=Avg('cpu'),
+                avg_memory=Avg('memory')
+            )
+            .order_by('-correct_count', "avg_cpu", "avg_memory")
+        )
+
+        first_verifier = benchmark_summary[0]["verifier"]
+        benchmark = Benchmark.objects.filter(verification_task=vt, verifier=first_verifier).first()
         if benchmark is None:
             continue
+
+
 
         summary.add_result(
             verification_task=vt,

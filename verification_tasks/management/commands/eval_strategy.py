@@ -16,7 +16,7 @@ class Command(BaseCommand):
     help = "Closes the specified poll for voting"
 
     def handle(self, *args, **options):
-        vts_train, vts_test = get_train_test_data(test_size=0.1, random_state=1, shuffle=False)
+        vts_train, vts_test = get_train_test_data(test_size=0.1, random_state=42, shuffle=False)
         
         main_collection, train_collection, test_collection = get_collection(), get_train_collection(), get_test_collection()
         
@@ -31,14 +31,11 @@ class Command(BaseCommand):
         print("Train set size:", train_collection.count())
         print("Test set size:", test_collection.count())
 
-        knn_1_best_summary = evaluate_knn_1_best_verifier(vts_test)
+        knn_1_best_summary = evaluate_knn_1_best_verifier(vts_test, train_collection, test_collection)
         knn_1_best_summary.write_to_csv("strategy_knn_1_verifier.csv")
 
-        knn_5_best_summary = evaluate_knn_5_majority_vote_best_verifier(vts_train, vts_test)
+        knn_5_best_summary = evaluate_knn_5_majority_vote_best_verifier(vts_test, train_collection, test_collection)
         knn_5_best_summary.write_to_csv("strategy_knn_5_verifier.csv")
-
-        # knn_5_dist_best_summary = evaluate_knn_5_majority_vote_best_verifier(vts_train, vts_test)
-        # knn_5_dist_best_summary.write_to_csv("strategy_knn_5_dist_verifier.csv")
         
         category_summary = evaluate_category_best_verifier(vts_test)
         category_summary.write_to_csv("strategy_category_best_verifier.csv")

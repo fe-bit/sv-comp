@@ -13,7 +13,7 @@ def get_train_test_data(first_n: int|None=None, test_size: float|None=0.2, rando
         return [], list([i[0] for i in VerificationTask.objects.all().values_list("id")])
     else: 
         vts_train, vts_test = [], []
-        for vc in VerificationCategory.objects.all()[:1]:
+        for vc in VerificationCategory.objects.all()[:2]:
             vts_c = list([i[0] for i in VerificationTask.objects.filter(category=vc).values_list("id")])
             vts__c_train, vts_c_test = train_test_split(vts_c, test_size=test_size, random_state=random_state, shuffle=shuffle)
             vts_train.extend(vts__c_train)

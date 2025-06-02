@@ -14,10 +14,6 @@ def status_from_string(status_str: str) -> Status:
     else:
         return Status.UNKNOWN
 
-class VerificationSpecification(models.Model):
-    name = models.CharField(max_length=255, unique=True)
-
-
 class BenchmarkManager(models.Manager):
     def correct(self):
         return self.filter(is_correct=True).order_by("cpu", "memory")

@@ -9,7 +9,6 @@ urls = [
     "https://sv-comp.sosy-lab.org/2025/results/results-verified/META_NoOverflows.table.html#/table",
     "https://sv-comp.sosy-lab.org/2025/results/results-verified/META_Termination.table.html#/table",
     "https://sv-comp.sosy-lab.org/2025/results/results-verified/META_SoftwareSystems.table.html#/table",
-    "https://sv-comp.sosy-lab.org/2025/results/results-verified/META_FalsificationOverall.table.html#/table"
 ]
 
 def get_file(url: str, output_dir: str) -> str:
@@ -132,6 +131,7 @@ class SVCOMP:
             "concurrency_safety": get_verification_results(urls[2]),
             "no_overflows": get_verification_results(urls[3]),
             "termination": get_verification_results(urls[4]),
+            "software_systems": get_verification_results(urls[5]),
         }
 
     @classmethod
@@ -150,6 +150,10 @@ ConcurrencySafety:
 {self.data["concurrency_safety"].summary(indent=1)}
 NoOverflows: 
 {self.data["no_overflows"].summary(indent=1)}
+Termination:
+{self.data["termination"].summary(indent=1)}
+SoftwareSystems:
+{self.data["software_systems"].summary(indent=1)}
 """
     
     def get_training_data(self) -> dict:
@@ -170,9 +174,13 @@ NoOverflows:
         for result in self.data["no_overflows"].verification_results:
             key = result.verifier.verifier_name
             grouped_by_verifier[key].append(result)
+        
+        for result in self.data["termination"].verification_results:
+            key = result.verifier.verifier_name
+            grouped_by_verifier[key].append(result)
+        
+        for result in self.data["software_systems"].verification_results:
+            key = result.verifier.verifier_name
+            grouped_by_verifier[key].append(result)
 
         return dict(grouped_by_verifier)
-    
-
-def get_svcomp() -> SVCOMP:
-    return SVCOMP()

@@ -5,9 +5,13 @@ from typing import List, Optional
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support import expected_conditions as EC
 import time
 from .reader import VerificationResults, VerifierResult, Verifier, VerificationTask, get_file
+import tempfile
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
 
 
 def get_table(soup: BeautifulSoup) -> VerificationResults:
@@ -65,7 +69,20 @@ def save_all_pages(url: str, output_dir: str = "tables", overwrite:bool=False):
         print(f"URL already scraped: {url}")
         return None
 
-    driver = webdriver.Chrome()
+    temp_profile = tempfile.mkdtemp()
+
+    options = Options()
+    options.add_argument(f"--user-data-dir={temp_profile}")
+    options.add_argument("--no-first-run")
+    options.add_argument("--no-default-browser-check")
+    options.add_argument("--disable-extensions")
+    options.add_argument("--start-maximized")
+    options.add_experimental_option("detach", True)  # Keep Chrome open after script
+    options.add_argument("--headless=new")
+
+    service = Service(ChromeDriverManager().install())
+
+    driver = webdriver.Chrome(service=service, options=options)
     driver.get(url)
     wait = WebDriverWait(driver, 20)
 
@@ -73,6 +90,7 @@ def save_all_pages(url: str, output_dir: str = "tables", overwrite:bool=False):
     prev_page = None
 
     all_verification_results = VerificationResults()
+    print(f"Starting to scrape pages of {url}...")
     while True:
         # Wait for the table to load
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, "main-table")))

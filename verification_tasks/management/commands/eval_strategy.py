@@ -62,4 +62,14 @@ class Command(BaseCommand):
         # df["correct"] = df["benchmarks"].apply(lambda x: sum([Benchmark.objects.get(id=idx).is_correct for idx in x]))
         df = df[["total_score", "correct", "total_cpu", "total_memory", "b-length", "vt-length"]]
         
+        # Display all rows and columns
+        pd.set_option('display.max_rows', None)
+        pd.set_option('display.max_columns', None)
+
+        # Prevent truncation of column width
+        pd.set_option('display.max_colwidth', None)
+
+        # Optional: expand the display width to accommodate wide tables
+        pd.set_option('display.width', 0)
+        
         print(df)

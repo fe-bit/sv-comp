@@ -7,19 +7,33 @@ from .strategy.data import get_train_test_data
 import pandas as pd
 from benchmarks.models import Benchmark
 from verification_tasks.embedding.embed import embed_verifications_tasks
-from verification_tasks.embedding.config import get_test_collection, get_train_collection, get_gemini_collection
+from verification_tasks.embedding.config import get_test_collection, get_train_collection, get_nvembed_collection
 from verification_tasks.embedding.helpers import delete_entries_in_collection, transfer_entries
 from verification_tasks.models import VerificationTask, VerificationCategory
-from verification_tasks.embedding.embedders.gemini_embedder import GeminiEmbedder
+from verification_tasks.embedding.embedders.nvembed_embedder import NVEmbedEmbedder
 
 class Command(BaseCommand):
     help = "Closes the specified poll for voting"
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--specification',
+            type=int,
+            default=None,  # Set a default batch size
+            help='Specification/Category ID to filter the verification tasks. If not provided, all tasks will be considered.',
+        )
+        parser.add_argument(
+            '--num_workers',
+            type=int,
+            default=4,  # Default number of DataLoader workers
+            help='Number of DataLoader workers for parallel data loading.',
+        )
+
     def handle(self, *args, **options):
         vts_train, vts_test = get_train_test_data(test_size=0.1, random_state=42, shuffle=False)
         
-        main_collection, train_collection, test_collection = get_gemini_collection(), get_train_collection(), get_test_collection()
-        # embed_verifications_tasks(vts_train + vts_test, GeminiEmbedder(), main_collection, False)
+        main_collection, train_collection, test_collection = get_nvembed_collection(), get_train_collection(), get_test_collection()
+        embed_verifications_tasks(vts_train + vts_test, NVEmbedEmbedder(), main_collection, False)
         print(len(vts_train), len(vts_test))
 
         delete_entries_in_collection(train_collection)

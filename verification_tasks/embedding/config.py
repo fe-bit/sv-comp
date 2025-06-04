@@ -10,6 +10,9 @@ def get_gemini_collection():
     client = PersistentClient(path="./chroma_db_gemini")
     return client.get_or_create_collection(name="code_chunks_gemini", embedding_function=None)
 
+def get_nvembed_collection():
+    client = PersistentClient(path="./chroma_db_nvembed")
+    return client.get_or_create_collection(name="code_chunks_nvembed", embedding_function=None)
 
 def get_train_collection():
     # client = PersistentClient(path="./chroma_db_train")

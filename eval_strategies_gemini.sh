@@ -3,7 +3,7 @@
 #SBATCH -o ./jobs/eval/gemini/%x.%j.out
 #SBATCH -e ./jobs/eval/gemini/%x.%j.err
 #SBATCH -D ./
-#SBATCH --time=4:30:00
+#SBATCH --time=1:30:00
 #SBATCH --partition=AMD
 #SBATCH --comment=""
 

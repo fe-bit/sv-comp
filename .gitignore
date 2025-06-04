@@ -5,6 +5,7 @@ tables/
 
 chroma_db/
 chroma_db_gemini/
+chroma_db_nvembed/
 
 output/
 *.ipynb

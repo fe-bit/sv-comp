@@ -1,4 +1,4 @@
-from verification_tasks.models import VerificationTask, VerificationCategory
+from verification_tasks.models import VerificationTask, VerificationCategory, Status
 from sklearn.model_selection import train_test_split
 from typing import Tuple
 from pydantic import BaseModel
@@ -14,7 +14,7 @@ def get_train_test_data(test_size: float|None=0.2, random_state=42, shuffle=True
     else: 
         vts_train, vts_test = [], []
         for vc in VerificationCategory.objects.all():
-            vts_c = [vt.pk for vt in VerificationTask.objects.filter(category=vc) if vt.has_c_file()]
+            vts_c = [vt.pk for vt in VerificationTask.objects.filter(category=vc, expected_result__in=[Status.TRUE, Status.ERROR, Status.FALSE, Status.UNKNOWN]) if vt.has_c_file()]
             vts_c_train, vts_c_test = train_test_split(vts_c, test_size=test_size, random_state=random_state, shuffle=shuffle)
             vts_train.extend(vts_c_train)
             vts_test.extend(vts_c_test)

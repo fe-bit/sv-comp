@@ -4,6 +4,7 @@ from transformers import AutoModel, AutoTokenizer
 import torch
 from .base_embedder import Embedder
 from typing import List
+import os
 
 if torch.cuda.is_available():
     print("CUDA is available! Using GPU.")
@@ -12,6 +13,10 @@ if torch.cuda.is_available():
     print(f"Device name: {torch.cuda.get_device_name(0)}")
 else:
     print("CUDA is not available. Using CPU.")
+
+num_threads = int(os.environ.get("SLURM_CPUS_PER_TASK", 1)) # Default to 1 if not in Slurm
+torch.set_num_threads(num_threads)
+print(f"PyTorch using {torch.get_num_threads()} CPU threads.")
 
 
 class TransformerEmbedder(Embedder):

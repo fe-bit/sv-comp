@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 def evaluate_virtually_best_verifier(vts_test: list[int]) -> EvaluationStrategySummary:
     summary = EvaluationStrategySummary()
-
+    
     for vt_id in tqdm(vts_test, desc="Processing virtually best"):
         vt = VerificationTask.objects.get(id=vt_id)
         best = get_virtually_best_benchmark(Benchmark.objects.filter(verification_task=vt))

@@ -6,17 +6,17 @@ from benchmarks.models import Benchmark
 import csv
 
 
-def get_train_test_data(first_n: int|None=None, test_size: float|None=0.2, random_state=42, shuffle=True) -> Tuple[list[int], list[int]]:    
+def get_train_test_data(test_size: float|None=0.2, random_state=42, shuffle=True) -> Tuple[list[int], list[int]]:    
     if test_size is None:
-        return list([i[0] for i in VerificationTask.objects.all().values_list("id")]), []
+        return [vt.pk for vt in VerificationTask.objects.all() if vt.has_c_file()], []
     elif test_size == 1.0:
-        return [], list([i[0] for i in VerificationTask.objects.all().values_list("id")])
+        return [], [vt.pk for vt in VerificationTask.objects.all() if vt.has_c_file()]
     else: 
         vts_train, vts_test = [], []
         for vc in VerificationCategory.objects.all():
-            vts_c = list([i[0] for i in VerificationTask.objects.filter(category=vc).values_list("id")])
-            vts__c_train, vts_c_test = train_test_split(vts_c, test_size=test_size, random_state=random_state, shuffle=shuffle)
-            vts_train.extend(vts__c_train)
+            vts_c = [vt.pk for vt in VerificationTask.objects.filter(category=vc) if vt.has_c_file()]
+            vts_c_train, vts_c_test = train_test_split(vts_c, test_size=test_size, random_state=random_state, shuffle=shuffle)
+            vts_train.extend(vts_c_train)
             vts_test.extend(vts_c_test)
 
     return list(vts_train), list(vts_test)
@@ -31,15 +31,18 @@ class EvaluationStrategySummary(BaseModel):
 
     def add_result(self, verification_task: VerificationTask, benchmark: Benchmark) -> None:
         try:
-            score = int(benchmark.raw_score)
+            if benchmark.raw_score is None:
+                score=0
+            else:
+                score = int(benchmark.raw_score)
         except:
             score = 0
 
         self.total_score += score
         self.total_cpu += benchmark.cpu if benchmark.cpu is not None else 600
         self.total_memory += benchmark.memory if benchmark.memory is not None else 600
-        self.verification_tasks.append(verification_task.id)
-        self.benchmarks.append(benchmark.id)
+        self.verification_tasks.append(verification_task.pk)
+        self.benchmarks.append(benchmark.pk)
         self.correct += benchmark.is_correct
 
     def pretty_print(self) -> None:
@@ -59,7 +62,7 @@ class EvaluationStrategySummary(BaseModel):
                 benchmark = Benchmark.objects.get(id=benchmark_id)
                 writer.writerow([
                     vt.name,
-                    vt.id,
+                    vt.pk,
                     benchmark.verifier.name,
                     benchmark.status,
                     benchmark.cpu,

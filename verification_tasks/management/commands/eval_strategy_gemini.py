@@ -3,15 +3,14 @@ from .strategy.category_virtual_verifier import evaluate_category_best_verifier
 from .strategy.best_virtual_verifier import evaluate_virtually_best_verifier
 from .strategy.knn_1_embed import evaluate_knn_1_best_verifier
 from .strategy.knn_5_majority_vote import evaluate_knn_5_majority_vote_best_verifier
-from .strategy.knn_5_distance_vote import evaluate_knn_5_distance_weighted
 from .strategy.data import get_train_test_data
 import pandas as pd
 from benchmarks.models import Benchmark
 from verification_tasks.embedding.embed import embed_verifications_tasks
-from verification_tasks.embedding.config import get_collection, get_test_collection, get_train_collection
+from verification_tasks.embedding.config import get_test_collection, get_train_collection, get_gemini_collection
 from verification_tasks.embedding.helpers import delete_entries_in_collection, transfer_entries
-from verification_tasks.embedding.embedders.transformer_embedder import TransformerEmbedder
-
+from verification_tasks.models import VerificationTask, VerificationCategory
+from verification_tasks.embedding.embedders.gemini_embedder import GeminiEmbedder
 
 class Command(BaseCommand):
     help = "Closes the specified poll for voting"
@@ -19,9 +18,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         vts_train, vts_test = get_train_test_data(test_size=0.1, random_state=42, shuffle=False)
         
-        main_collection, train_collection, test_collection = get_collection(), get_train_collection(), get_test_collection()
+        main_collection, train_collection, test_collection = get_gemini_collection(), get_train_collection(), get_test_collection()
         
-        embed_verifications_tasks(vts_train + vts_test, TransformerEmbedder(), get_collection(), False)
+        embed_verifications_tasks(vts_train + vts_test, GeminiEmbedder(), main_collection, False)
 
         delete_entries_in_collection(train_collection)
         delete_entries_in_collection(test_collection)

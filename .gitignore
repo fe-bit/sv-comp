@@ -2,10 +2,14 @@ db.sqlite3
 *.pyc
 tables/
 *.csv
+
 chroma_db/
+chroma_db_gemini/
+
 output/
 *.ipynb
 .DS_STORE
 env/
+.env
 .vscode/
 jobs/

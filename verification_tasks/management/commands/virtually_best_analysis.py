@@ -7,7 +7,7 @@ from .strategy.knn_5_distance_vote import evaluate_knn_5_distance_weighted
 from .strategy.data import get_train_test_data
 import pandas as pd
 from benchmarks.models import Benchmark
-from verification_tasks.embedding.embedder import embed_verifications_tasks
+from verification_tasks.embedding.embed import embed_verifications_tasks
 from verification_tasks.embedding.config import get_collection, get_test_collection, get_train_collection
 from verification_tasks.embedding.helpers import delete_entries_in_collection, transfer_entries
 from verification_tasks.models import VerificationTask, VerificationCategory

@@ -12,6 +12,7 @@ from .reader import VerificationResults, VerifierResult, Verifier, VerificationT
 import tempfile
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
+from bs4.element import Tag
 
 
 def get_table(soup: BeautifulSoup) -> VerificationResults:
@@ -45,10 +46,15 @@ def get_table(soup: BeautifulSoup) -> VerificationResults:
 
 
 
-def get_table_headers(soup: BeautifulSoup) -> list:
+def get_table_headers(soup: BeautifulSoup) -> List:
     table_header = soup.find('div', class_='table-header')
+    if not table_header or not hasattr(table_header, 'find_all'):
+        raise ValueError("Table header not found in the provided soup object.")
+    if not isinstance(table_header, Tag):
+        raise ValueError("Table header is not a valid Tag element.")
     headers = [header.text.strip() for header in table_header.find_all('div', class_="th header outer undefined")]
     return headers
+
 
 def get_table_rows(soup: BeautifulSoup) -> list:
     table = soup.find("div", class_="table-body")
@@ -110,8 +116,7 @@ def save_all_pages(url: str, output_dir: str = "tables", overwrite:bool=False):
         next_button = driver.find_element(By.ID, "pagination-next")
         next_class = next_button.get_attribute("class")
 
-        # Check if "Next" is disabled
-        if "disabled" in next_class.lower():
+        if next_class is None or "disabled" in next_class.lower():
             print("Reached last page.")
             break
 

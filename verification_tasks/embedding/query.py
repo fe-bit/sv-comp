@@ -1,48 +1,18 @@
-from verification_tasks.models import VerificationTask, VerificationCategory
-from .config import get_collection
-from .embedder import embed_code
+from verification_tasks.models import VerificationTask
 from typing_extensions import TypedDict
+from chromadb import Collection
 
 class VTQueryResult(TypedDict):
     verification_tasks: list[VerificationTask]
     distances: list[float]
 
 
-def query(code: str, category: VerificationCategory, n_results: int = 5, include_vts: list[VerificationTask]=None) -> list[dict]:
-    collection = get_collection()
-    final_embedding = embed_code(code)
-    if include_vts is None:
-        results = collection.query(
-            query_embeddings=final_embedding.cpu().numpy().tolist(),
-            n_results=n_results,
-            where={
-                "verification_category": category.name
-            }
-        )
-    else:
-        results = collection.query(
-            query_embeddings=final_embedding.cpu().numpy().tolist(),
-            n_results=n_results,
-            where={
-                "verification_category": category.name,
-            },
-            ids=[str(vt.id) for vt in include_vts]
-        )
-
-    return [
-        {
-            "verification_task": VerificationTask.objects.get(id=result_id),
-            "distance": distance
-        }
-        for result_id, distance in zip(results["ids"][0], results["distances"][0])
-    ]
-
-def query_verification_task(vt: VerificationTask, n_results: int = 5, include_vts: list[VerificationTask]=None, collection=None, collection_query=None) -> list[dict]:
+def query_verification_task(vt: VerificationTask, collection:Collection, collection_query, n_results: int = 5, include_vts: list[VerificationTask]|None=None) -> list[dict]|None:
     vt_query = collection.get(
-            ids=[str(vt.id)],
+            ids=[str(vt.pk)],
             include=["embeddings"],
     )
-    if len(vt_query["ids"]) == 0 or vt_query["ids"][0] != str(vt.id):
+    if len(vt_query["ids"]) == 0 or vt_query["ids"][0] != str(vt.pk) or vt_query["embeddings"] is None:
         return None
 
     embedding = vt_query["embeddings"][0]
@@ -62,7 +32,7 @@ def query_verification_task(vt: VerificationTask, n_results: int = 5, include_vt
             where={
                 "verification_category": vt.category.name,
             },
-            ids=[str(i_vt.id) for i_vt in include_vts]
+            ids=[str(i_vt.pk) for i_vt in include_vts]
         )
 
     return [

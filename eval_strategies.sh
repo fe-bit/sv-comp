@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --job-name=gsoc-eval_strategies
-#SBATCH -o ./jobs/eval/%x.%j.out
-#SBATCH -e ./jobs/eval/%x.%j.err
+#SBATCH -o ./jobs/eval/transformer/%x.%j.out
+#SBATCH -e ./jobs/eval/transformer/%x.%j.err
 #SBATCH -D ./
-#SBATCH --time=15:30:00
-#SBATCH --partition=AMD
+#SBATCH --time=2:30:00
+#SBATCH --partition=NvidiaAll
 #SBATCH --comment=""
 
 source env/bin/activate

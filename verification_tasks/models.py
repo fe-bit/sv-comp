@@ -86,4 +86,7 @@ class VerificationTask(models.Model):
             return Status.FALSE
         else:
             return Status.INVALID_TASK
+        
+    def has_c_file(self) -> bool:
+        return self.get_c_file_path().exists()
     

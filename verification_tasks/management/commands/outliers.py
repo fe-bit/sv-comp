@@ -1,7 +1,4 @@
-from django.core.management.base import BaseCommand, CommandError
-from verification_tasks.models import VerificationCategory, VerificationTask
-from verification_tasks.embedding.embedder import embed_verifications_tasks
-from verification_tasks.embedding.query import query_verification_task, query
+from django.core.management.base import BaseCommand
 from benchmarks.models import Benchmark
 import csv
 from tqdm import tqdm

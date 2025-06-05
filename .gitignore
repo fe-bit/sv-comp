@@ -3,10 +3,7 @@ db.sqlite3
 tables/
 *.csv
 
-chroma_db/
-chroma_db_gemini/
-chroma_db_nvembed/
-chroma_db_codet5p/
+chroma/
 
 output/
 *.ipynb

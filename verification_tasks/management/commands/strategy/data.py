@@ -31,15 +31,7 @@ class EvaluationStrategySummary(BaseModel):
     correct: int = 0
 
     def add_result(self, verification_task: VerificationTask, benchmark: Benchmark) -> None:
-        try:
-            if benchmark.raw_score is None:
-                score=0
-            else:
-                score = int(benchmark.raw_score)
-        except:
-            score = 0
-
-        self.total_score += score
+        self.total_score += benchmark.raw_score
         self.total_cpu += benchmark.cpu if benchmark.cpu is not None else 600
         self.total_memory += benchmark.memory if benchmark.memory is not None else 600
         self.verification_tasks.append(verification_task.pk)

@@ -24,7 +24,7 @@ class Benchmark(models.Model):
     verifier = models.ForeignKey(Verifier, on_delete=models.CASCADE)
     
     status = models.CharField(max_length=50)
-    raw_score = models.TextField(blank=True, null=True)  # Raw core dump or output from the verifier
+    raw_score = models.IntegerField() # -64 refers to blank entry that is worse than false one
     cpu = models.FloatField(blank=True, null=True)  # CPU time in seconds
     memory = models.FloatField(blank=True, null=True)  # Memory usage in MB
 

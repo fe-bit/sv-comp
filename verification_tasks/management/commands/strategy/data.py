@@ -3,17 +3,18 @@ from sklearn.model_selection import train_test_split
 from typing import Tuple
 from pydantic import BaseModel
 from benchmarks.models import Benchmark
+from django.db import models
 import csv
 
 
-def get_train_test_data(test_size: float|None=0.2, random_state=42, shuffle=True) -> Tuple[list[int], list[int]]:    
+def get_train_test_data(test_size: float|None=0.2, random_state=42, shuffle=True, categories: models.Manager[VerificationCategory] = VerificationCategory.objects.all()) -> Tuple[list[int], list[int]]:    
     if test_size is None:
         return [vt.pk for vt in VerificationTask.objects.all() if vt.has_c_file()], []
     elif test_size == 1.0:
         return [], [vt.pk for vt in VerificationTask.objects.all() if vt.has_c_file()]
     else: 
         vts_train, vts_test = [], []
-        for vc in VerificationCategory.objects.all():
+        for vc in categories:
             vts_c = [vt.pk for vt in VerificationTask.objects.filter(category=vc, expected_result__in=[Status.TRUE, Status.ERROR, Status.FALSE, Status.UNKNOWN]) if vt.has_c_file()]
             vts_c_train, vts_c_test = train_test_split(vts_c, test_size=test_size, random_state=random_state, shuffle=shuffle)
             vts_train.extend(vts_c_train)

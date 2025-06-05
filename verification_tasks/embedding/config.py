@@ -1,9 +1,12 @@
 from chromadb import PersistentClient, Client
+from typing import Literal
+
+PERSISTENT_COLLECTION_NAMES = Literal["code_chunks", "code_chunks_nvembed"]
 
 
-def get_collection():
+def get_collection(collection_name: PERSISTENT_COLLECTION_NAMES="code_chunks"):
     client = PersistentClient(path="./chroma_db")
-    return client.get_or_create_collection(name="code_chunks", embedding_function=None)
+    return client.get_or_create_collection(name=collection_name, embedding_function=None)
 
 
 def get_gemini_collection():
@@ -13,6 +16,10 @@ def get_gemini_collection():
 def get_nvembed_collection():
     client = PersistentClient(path="./chroma_db_nvembed")
     return client.get_or_create_collection(name="code_chunks_nvembed", embedding_function=None)
+
+def get_codet5p_embedder_collection():
+    client = PersistentClient(path="./chroma_db_codet5p")
+    return client.get_or_create_collection(name="code_chunks", embedding_function=None)
 
 def get_train_collection():
     # client = PersistentClient(path="./chroma_db_train")

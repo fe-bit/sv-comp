@@ -1,14 +1,12 @@
 from verification_tasks.models import VerificationTask
-from transformers import AutoModel, AutoTokenizer
 from chromadb import Collection
 from tqdm import tqdm
-from .config import get_collection
 from .embedders.base_embedder import Embedder
 
 
-def embed_verifications_tasks(vts: list[int], embedder: Embedder, collection=get_collection(), num_workers: int=1):
+def embed_verifications_tasks(vts: list[int], embedder: Embedder, collection:Collection):
     vts_objects = VerificationTask.objects.filter(id__in=vts)
-    for vt in tqdm(vts_objects):
+    for vt in tqdm(vts_objects, desc="Embedding verification tasks"):
         try:
             embed_verification_task(vt, embedder, collection)
         except Exception as e:

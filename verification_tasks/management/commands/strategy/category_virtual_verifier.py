@@ -16,6 +16,7 @@ def evaluate_category_best_verifier(vts_test: list[int]) -> EvaluationStrategySu
     SELECT 
         vt.category_id, 
         b.verifier_id,
+        SUM(b.raw_score) as total_score,
         SUM(b.is_correct) as total_correct,
         SUM(b.cpu) as total_cpu
     FROM 
@@ -25,6 +26,7 @@ def evaluate_category_best_verifier(vts_test: list[int]) -> EvaluationStrategySu
         vt.category_id, b.verifier_id
     ORDER BY 
         vt.category_id, 
+        total_score DESC,
         total_correct DESC, 
         total_cpu ASC
     """
@@ -35,7 +37,7 @@ def evaluate_category_best_verifier(vts_test: list[int]) -> EvaluationStrategySu
     
     # Process results to get best verifier per category
     current_category = None
-    for category_id, verifier_id, total_correct, total_cpu in rows:
+    for category_id, verifier_id, total_score, total_correct, total_cpu in rows:
         if category_id != current_category:
             # First entry for this category is the best one due to our ordering
             category_verifiers[category_id] = verifier_id

@@ -7,15 +7,25 @@ from django.db import models
 import csv
 
 
-def get_train_test_data(test_size: float|None=0.2, random_state=42, shuffle=True, categories: models.Manager[VerificationCategory] = VerificationCategory.objects.all()) -> Tuple[list[int], list[int]]:    
+def get_train_test_data(test_size: float|None=0.2, random_state=42, shuffle=True, categories: models.Manager[VerificationCategory] = VerificationCategory.objects.all(), use_c_files_only=True) -> Tuple[list[int], list[int]]:    
     if test_size is None:
-        return [vt.pk for vt in VerificationTask.objects.all() if vt.has_c_file()], []
+        if use_c_files_only:
+            return [vt.pk for vt in VerificationTask.objects.all() if vt.has_c_file()], []
+        else:
+            return [vt.pk for vt in VerificationTask.objects.all()], []
     elif test_size == 1.0:
-        return [], [vt.pk for vt in VerificationTask.objects.all() if vt.has_c_file()]
+        if use_c_files_only:
+            return [], [vt.pk for vt in VerificationTask.objects.all() if vt.has_c_file()]
+        else:
+            return [], [vt.pk for vt in VerificationTask.objects.all()]
     else: 
         vts_train, vts_test = [], []
         for vc in categories:
-            vts_c = [vt.pk for vt in VerificationTask.objects.filter(category=vc, expected_result__in=[Status.TRUE, Status.ERROR, Status.FALSE, Status.UNKNOWN]) if vt.has_c_file()]
+            if use_c_files_only:
+                vts_c = [vt.pk for vt in VerificationTask.objects.filter(category=vc, expected_result__in=[Status.TRUE, Status.ERROR, Status.FALSE, Status.UNKNOWN]) if vt.has_c_file()]
+            else:
+                vts_c = [vt.pk for vt in VerificationTask.objects.filter(category=vc, expected_result__in=[Status.TRUE, Status.ERROR, Status.FALSE, Status.UNKNOWN])]
+            
             vts_c_train, vts_c_test = train_test_split(vts_c, test_size=test_size, random_state=random_state, shuffle=shuffle)
             vts_train.extend(vts_c_train)
             vts_test.extend(vts_c_test)

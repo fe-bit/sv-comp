@@ -13,7 +13,7 @@ class Command(BaseCommand):
     help = "Closes the specified poll for voting"
 
     def handle(self, *args, **options):
-        _, vts = get_train_test_data(test_size=1.0, shuffle=False)
+        _, vts = get_train_test_data(test_size=1.0, shuffle=False, use_c_files_only=False)
 
         category_summary = evaluate_category_best_verifier(vts)
         

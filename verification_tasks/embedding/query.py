@@ -7,7 +7,7 @@ class VTQueryResult(TypedDict):
     distances: list[float]
 
 
-def query_verification_task(vt: VerificationTask, collection:Collection, collection_query, n_results: int = 5, include_vts: list[VerificationTask]|None=None) -> list[dict]|None:
+def query_verification_task(vt: VerificationTask, collection:Collection, collection_query: Collection, n_results: int = 5, include_vts: list[VerificationTask]|None=None) -> list[dict]|None:
     vt_query = collection.get(
             ids=[str(vt.pk)],
             include=["embeddings"],

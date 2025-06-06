@@ -17,14 +17,14 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # categories=VerificationCategory.objects.filter(id__in=[1,3])
-        vts_train, vts_test = get_train_test_data(test_size=0.1, random_state=42, shuffle=False, use_c_files_only=True)
+        vts_train, vts_test = get_train_test_data(test_size=0.1, random_state=42, shuffle=False, use_c_files_only=False)
         
-        main_collection, train_collection, test_collection = get_codet5p_embedder_collection(), get_train_collection(in_memory=True), get_test_collection(in_memory=True)
+        main_collection, train_collection, test_collection = get_codet5p_embedder_collection(), get_train_collection(), get_test_collection()
         # embed_verifications_tasks(vts_train + vts_test, CodeT5pEmbedder(), main_collection)
         print(len(vts_train), len(vts_test))
 
-        # delete_entries_in_collection(train_collection, vts_test)
-        # delete_entries_in_collection(test_collection, vts_train)
+        delete_entries_in_collection(train_collection, vts_test)
+        delete_entries_in_collection(test_collection, vts_train)
         
         transfer_entries(main_collection, train_collection, vts_train, batch_size=10)
         transfer_entries(main_collection, test_collection, vts_test, batch_size=10)

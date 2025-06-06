@@ -10,17 +10,18 @@ if torch.cuda.is_available():
     print(f"Number of GPUs: {torch.cuda.device_count()}")
     print(f"Current CUDA device: {torch.cuda.current_device()}")
     print(f"Device name: {torch.cuda.get_device_name(0)}")
+elif torch.backends.mps.is_available():
+    print("MPS is available! Using Apple Silicon GPU.")
 else:
     print("CUDA is not available. Using CPU.")
-
-num_threads = int(os.environ.get("SLURM_CPUS_PER_TASK", 1)) # Default to 1 if not in Slurm
-torch.set_num_threads(num_threads)
-print(f"PyTorch using {torch.get_num_threads()} CPU threads.")
+    num_threads = int(os.environ.get("SLURM_CPUS_PER_TASK", 1)) # Default to 1 if not in Slurm
+    torch.set_num_threads(num_threads)
+    print(f"PyTorch using {torch.get_num_threads()} CPU threads.")
 
 
 class CodeT5pEmbedder(Embedder):
     def __init__(self):
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
         checkpoint = "Salesforce/codet5p-110m-embedding"
         self.tokenizer = AutoTokenizer.from_pretrained(checkpoint, trust_remote_code=True)
         self.model = AutoModel.from_pretrained(checkpoint, trust_remote_code=True).to(self.device)

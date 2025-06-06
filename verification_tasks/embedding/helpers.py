@@ -53,7 +53,7 @@ def delete_entries_in_collection(collection, ids=None, batch_size=100):
             return 0
 
 
-def transfer_entries(source_collection, target_collection, ids, batch_size=100):
+def transfer_entries(source_collection, target_collection, ids=None, batch_size=100):
     """
     Transfers entries with specified IDs from source collection to target collection.
     
@@ -64,8 +64,7 @@ def transfer_entries(source_collection, target_collection, ids, batch_size=100):
         batch_size: Number of entries to process in a single batch.
     """
     if not ids:
-        print("No IDs provided for transfer.")
-        return 0
+        ids = source_collection.get()["ids"]
     
     ids = [str(id) for id in ids]  # Ensure IDs are strings
     
@@ -95,7 +94,7 @@ def transfer_entries(source_collection, target_collection, ids, batch_size=100):
             # Get batch from source collection
             source_entries = source_collection.get(
                 ids=batch_ids,
-                include=["embeddings", "documents", "metadatas"]
+                include=["embeddings", "metadatas"]
             )
             
             # Skip if no entries found
@@ -107,7 +106,6 @@ def transfer_entries(source_collection, target_collection, ids, batch_size=100):
             target_collection.upsert(
                 ids=source_entries["ids"],
                 embeddings=source_entries["embeddings"],
-                documents=source_entries["documents"],
                 metadatas=source_entries["metadatas"]
             )
             
@@ -144,7 +142,7 @@ def _transfer_batch_individually(source_collection, target_collection, batch_ids
             # Get individual entry
             source_entry = source_collection.get(
                 ids=[entry_id],
-                include=["embeddings", "documents", "metadatas"]
+                include=["embeddings", "metadatas"]
             )
             
             if not source_entry["ids"]:
@@ -154,7 +152,6 @@ def _transfer_batch_individually(source_collection, target_collection, batch_ids
             target_collection.upsert(
                 ids=source_entry["ids"],
                 embeddings=source_entry["embeddings"],
-                documents=source_entry["documents"],
                 metadatas=source_entry["metadatas"]
             )
             

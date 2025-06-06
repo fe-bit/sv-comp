@@ -23,11 +23,11 @@ class Command(BaseCommand):
         # embed_verifications_tasks(vts_train + vts_test, CodeT5pEmbedder(), main_collection)
         print(len(vts_train), len(vts_test))
 
-        delete_entries_in_collection(train_collection, vts_test)
-        delete_entries_in_collection(test_collection, vts_train)
+        # delete_entries_in_collection(train_collection, vts_test)
+        # delete_entries_in_collection(test_collection, vts_train)
         
-        transfer_entries(main_collection, train_collection, vts_train, batch_size=10)
-        transfer_entries(main_collection, test_collection, vts_test, batch_size=10)
+        # transfer_entries(main_collection, train_collection, vts_train, batch_size=10)
+        # transfer_entries(main_collection, test_collection, vts_test, batch_size=10)
 
         print("Train set size:", train_collection.count())
         print("Test set size:", test_collection.count())

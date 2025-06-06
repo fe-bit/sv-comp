@@ -67,7 +67,6 @@ def embed_verification_task(vt: VerificationTask, embedder: Embedder, collection
         return
     
     collection.upsert(
-        documents=[code],
         embeddings=final_embedding,
         metadatas=[
             {

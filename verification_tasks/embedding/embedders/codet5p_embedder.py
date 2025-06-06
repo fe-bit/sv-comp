@@ -20,7 +20,7 @@ print(f"PyTorch using {torch.get_num_threads()} CPU threads.")
 
 class CodeT5pEmbedder(Embedder):
     def __init__(self):
-        self.device = "cpu" #torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         checkpoint = "Salesforce/codet5p-110m-embedding"
         self.tokenizer = AutoTokenizer.from_pretrained(checkpoint, trust_remote_code=True)
         self.model = AutoModel.from_pretrained(checkpoint, trust_remote_code=True).to(self.device)

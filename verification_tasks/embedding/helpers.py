@@ -27,7 +27,7 @@ def delete_entries_in_collection(collection, ids=None, batch_size=100):
                 if not batch_ids:
                     break
                     
-                collection.delete(ids=batch_ids)
+                collection.delete(ids=[str(b_id) for b_id in batch_ids])
                 deleted_count += len(batch_ids)
                 time.sleep(0.1)  # Small delay to avoid overloading
                 
@@ -37,10 +37,17 @@ def delete_entries_in_collection(collection, ids=None, batch_size=100):
             return 0
     else:
         # Delete specific entries by ID
+        ids = [str(id) for id in ids]  # Ensure IDs are strings
+        deleted_count = 0
         try:
-            collection.delete(ids=ids)
-            print(f"Successfully deleted {len(ids)} entries from the collection.")
-            return len(ids)
+            for i in tqdm(range(0, len(ids), batch_size), desc="Delete Entries from Collection"):
+                batch_ids = ids[i:i+batch_size]
+                collection.delete(ids=batch_ids)
+                deleted_count += len(batch_ids)
+            
+            
+            print(f"Successfully deleted {deleted_count}/{len(ids)} entries from the collection.")
+            return deleted_count
         except Exception as e:
             print(f"Error deleting entries: {str(e)}")
             return 0
@@ -58,76 +65,102 @@ def transfer_entries(source_collection, target_collection, ids, batch_size=100):
     """
     if not ids:
         print("No IDs provided for transfer.")
-        return
-    else:
-        ids = [str(id) for id in ids]  # Ensure IDs are strings
+        return 0
     
-    # Process in batches to avoid memory issues
+    ids = [str(id) for id in ids]  # Ensure IDs are strings
+    
+    # First, check which IDs already exist in target collection (batch check)
+    try:
+        existing_check = target_collection.get(ids=ids, include=[])
+        existing_ids = set(existing_check["ids"])
+        ids_to_transfer = [id for id in ids if id not in existing_ids]
+    except Exception as e:
+        print(f"Warning: Could not check existing IDs: {e}")
+        ids_to_transfer = ids
+    
+    if not ids_to_transfer:
+        print("All entries already exist in target collection.")
+        return 0
+    
+    print(f"Transferring {len(ids_to_transfer)} entries (skipping {len(ids) - len(ids_to_transfer)} existing)")
+    
     total_transferred = 0
+    failed_transfers = []
     
-    # Process IDs in batches
-    for i in tqdm(range(0, len(ids), batch_size), desc="Insert Entries into Collection"):
-        batch_ids = ids[i:i+batch_size]
+    # Process in batches
+    for i in tqdm(range(0, len(ids_to_transfer), batch_size), desc="Transferring entries"):
+        batch_ids = ids_to_transfer[i:i+batch_size]
         
-        # Get the specific entries from source collection
-        source_entries = source_collection.get(
-            ids=batch_ids,
-            include=["embeddings", "documents", "metadatas"]
-        )
-        
-        # Skip if no entries found
-        if len(source_entries["ids"]) == 0:
-            continue
-        
-        # Check if we got all the data we need
-        if "embeddings" not in source_entries or source_entries["embeddings"] is None:
-            print(f"Warning: Missing embeddings data in batch {i}")
-            continue
-            
-        # Check for IDs that already exist in target collection
-        existing_ids = target_collection.get(
-            ids=source_entries["ids"],
-            include=[]
-        )["ids"]
-        
-        # Filter out existing IDs
-        new_indices = [idx for idx, id in enumerate(source_entries["ids"]) if id not in existing_ids]
-        
-        if not new_indices:
-            continue  # Skip if all IDs already exist
-            
-        # Add only new entries to target collection
         try:
-            # Extract data for new indices
-            new_ids = [source_entries["ids"][idx] for idx in new_indices]
-            new_embeddings = [source_entries["embeddings"][idx] for idx in new_indices]
-            new_documents = [source_entries["documents"][idx] for idx in new_indices]
-            new_metadatas = [source_entries["metadatas"][idx] for idx in new_indices]
-            
-            # Add to target collection
-            target_collection.add(
-                ids=new_ids,
-                embeddings=new_embeddings,
-                documents=new_documents,
-                metadatas=new_metadatas
+            # Get batch from source collection
+            source_entries = source_collection.get(
+                ids=batch_ids,
+                include=["embeddings", "documents", "metadatas"]
             )
             
-            total_transferred += len(new_ids)
+            # Skip if no entries found
+            if len(source_entries["ids"]) != len(batch_ids):
+                failed_transfers.extend(batch_ids)
+                continue
             
-        except ValueError as e:
-            print(f"Error during batch starting at {i}: {str(e)}")
-            print("Trying alternative approach for this batch...")
+            # Batch transfer to target collection using upsert for safety
+            target_collection.upsert(
+                ids=source_entries["ids"],
+                embeddings=source_entries["embeddings"],
+                documents=source_entries["documents"],
+                metadatas=source_entries["metadatas"]
+            )
             
-            # Alternative approach: add one by one
-            for idx in new_indices:
-                try:
-                    target_collection.add(
-                        ids=[source_entries["ids"][idx]],
-                        embeddings=[source_entries["embeddings"][idx]],
-                        documents=[source_entries["documents"][idx]],
-                        metadatas=[source_entries["metadatas"][idx]]
-                    )
-                    total_transferred += 1
-                except Exception as inner_e:
-                    print(f"Failed to add entry {source_entries['ids'][idx]}: {str(inner_e)}")
+            total_transferred += len(source_entries["ids"])
+            
+        except Exception as e:
+            print(f"Error in batch {i//batch_size + 1}: {str(e)}")
+            failed_transfers.extend(batch_ids)
+            
+            # Fallback: try individual transfers for this batch
+            individual_success = _transfer_batch_individually(
+                source_collection, target_collection, batch_ids
+            )
+            total_transferred += individual_success
     
+    # Report results
+    if failed_transfers:
+        print(f"Failed to transfer {len(failed_transfers)} entries")
+        if len(failed_transfers) <= 10:  # Only show if not too many
+            print(f"Failed IDs: {failed_transfers}")
+    
+    print(f"Successfully transferred {total_transferred} entries")
+    return total_transferred
+
+
+def _transfer_batch_individually(source_collection, target_collection, batch_ids):
+    """
+    Fallback function to transfer entries one by one when batch transfer fails.
+    """
+    success_count = 0
+    
+    for entry_id in batch_ids:
+        try:
+            # Get individual entry
+            source_entry = source_collection.get(
+                ids=[entry_id],
+                include=["embeddings", "documents", "metadatas"]
+            )
+            
+            if not source_entry["ids"]:
+                continue
+            
+            # Transfer individual entry
+            target_collection.upsert(
+                ids=source_entry["ids"],
+                embeddings=source_entry["embeddings"],
+                documents=source_entry["documents"],
+                metadatas=source_entry["metadatas"]
+            )
+            
+            success_count += 1
+            
+        except Exception as e:
+            print(f"Failed to transfer individual entry {entry_id}: {str(e)}")
+    
+    return success_count

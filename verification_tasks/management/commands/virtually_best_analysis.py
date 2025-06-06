@@ -1,16 +1,9 @@
 from django.core.management.base import BaseCommand
-from .strategy.category_virtual_verifier import evaluate_category_best_verifier
 from .strategy.best_virtual_verifier import evaluate_virtually_best_verifier
-from .strategy.knn_1_embed import evaluate_knn_1_best_verifier
-from .strategy.knn_5_majority_vote import evaluate_knn_5_majority_vote_best_verifier
-from .strategy.knn_5_distance_vote import evaluate_knn_5_distance_weighted
-from .strategy.data import get_train_test_data
 import pandas as pd
 from benchmarks.models import Benchmark
-from verification_tasks.embedding.embed import embed_verifications_tasks
-from verification_tasks.embedding.config import get_collection, get_test_collection, get_train_collection
-from verification_tasks.embedding.helpers import delete_entries_in_collection, transfer_entries
 from verification_tasks.models import VerificationTask, VerificationCategory
+
 
 class Command(BaseCommand):
     help = "Closes the specified poll for voting"

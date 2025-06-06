@@ -7,7 +7,7 @@
 #SBATCH --partition=AMD
 #SBATCH --comment=""
 
-export OMP_NUM_THREADS=12
-export SLURM_CPUS_PER_TASK=12
+export OMP_NUM_THREADS=1
+export SLURM_CPUS_PER_TASK=1
 source env/bin/activate
 python3 manage.py eval_strategy_codet5p

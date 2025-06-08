@@ -298,6 +298,24 @@ class VerificationCategory(models.Model):
         else:
             return None
 
+class VerificationSubcategory(models.Model):
+    name = models.CharField(max_length=255)
+    category = models.ForeignKey(VerificationCategory, on_delete=models.CASCADE, related_name='subcategories')
+
+    def __str__(self):
+        return f"{self.name} ({self.category.name})"
+
+class VerificationSet(models.Model):
+    name = models.CharField(max_length=255)
+    subcategories = models.ManyToManyField(VerificationSubcategory, blank=True)
+    patterns = models.TextField(
+        help_text="Patterns to match verification tasks in this subcategory. Use regex-like syntax with '*' for wildcards.", 
+        default=""
+    )
+
+    def __str__(self):
+        return f"{self.name}"
+
 class Status(models.TextChoices):
     TRUE = "true", "True"
     FALSE = "false", "False"
@@ -313,6 +331,11 @@ class VerificationTask(models.Model):
         choices=Status.choices,
         default=Status.TRUE,
         help_text="Expected result for the task."
+    )
+    subcategories = models.ManyToManyField(
+        VerificationSubcategory,
+        blank=True,
+        help_text="Subcategories of the verification task."
     )
 
     class Meta:

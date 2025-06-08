@@ -6,6 +6,8 @@ from utils.reader import SVCOMP
 from dateutil import parser
 from tqdm import tqdm
 
+#### ! DO NOT FORGET TO RUN python manage.py subcategories TO ADD SUBCATEGORIES AFTERWARDS ####
+
 def re_add_verification_tasks(tasks, category: VerificationCategory):
     VerificationTask.objects.filter(category=category).delete()
     new_tasks = [

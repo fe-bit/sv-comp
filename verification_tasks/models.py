@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import Sum
+from django.db.models import Sum, Avg, Count, Q
 from pathlib import Path
 import yaml
 from typing import Optional, TYPE_CHECKING
@@ -278,25 +278,32 @@ class VerificationCategory(models.Model):
         return self.name
 
     def best_verifier(self) -> Optional["Verifier"]:
+        best_verifier_data = self.verifier_ranking().first()
+        if best_verifier_data is not None:
+            from verifiers.models import Verifier
+            return Verifier.objects.get(name=best_verifier_data['verifier__name'])
+        else:
+            return None
+        
+    def verifier_ranking(self):
         from benchmarks.models import Benchmark
 
         best_verifier_data = (
             Benchmark.objects
             .filter(verification_task__category=self)
-            .values('verifier')
+            .values('verifier__name')
             .annotate(
-                total_score=Sum('raw_score'),
-                total_correct=Sum('is_correct'),
-                total_cpu=Sum('cpu')
+                count=Count('id'),
+                sum_score=Sum('raw_score'),
+                avg_score_per_benchmark=Avg('raw_score'),
+                avg_cpu=Avg('cpu'),
+                avg_memory=Avg('memory'),
+                correct_count=Count('id', filter=Q(is_correct=True)),
+                vts_covered=Count('verification_task', distinct=True),
             )
-            .order_by('-total_score', '-total_correct', 'total_cpu')
-            .first()
+            .order_by('-avg_score_per_benchmark', "-correct_count", "avg_cpu", "avg_memory", 'verifier__name')
         )
-        if best_verifier_data is not None:
-            from verifiers.models import Verifier
-            return Verifier.objects.get(id=best_verifier_data['verifier'])
-        else:
-            return None
+        return best_verifier_data
 
 class VerificationSubcategory(models.Model):
     name = models.CharField(max_length=255)

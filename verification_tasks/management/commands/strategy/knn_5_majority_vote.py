@@ -7,12 +7,12 @@ from tqdm import tqdm
 
 
 
-def evaluate_knn_5_majority_vote_best_verifier(vts_test: list[int], train_collection, test_collection) -> EvaluationStrategySummary:
+def evaluate_knn_majority_vote_best_verifier(vts_test: list[int], train_collection, test_collection, knn: int=5) -> EvaluationStrategySummary:
     summary = EvaluationStrategySummary()
-    for vt_id in tqdm(vts_test, desc="Processing KNN-5 Majority Vote"):
+    for vt_id in tqdm(vts_test, desc=f"Processing KNN-{str(knn)} Majority Vote"):
         # Get 5 closest verification tasks
         vt = VerificationTask.objects.get(id=vt_id)
-        vt_closest = query_verification_task(vt, n_results=5, collection=test_collection, collection_query=train_collection)
+        vt_closest = query_verification_task(vt, n_results=knn, collection=test_collection, collection_query=train_collection)
         if vt_closest is None:
             continue
 
@@ -25,19 +25,16 @@ def evaluate_knn_5_majority_vote_best_verifier(vts_test: list[int], train_collec
             .values('verifier')
             .annotate(
                 total_score=Sum('raw_score'),
-                correct_count=Count('is_correct'),
                 avg_cpu=Avg('cpu'),
                 avg_memory=Avg('memory')
             )
-            .order_by('-total_score', '-correct_count', "avg_cpu", "avg_memory")
+            .order_by('-total_score', "avg_cpu", "avg_memory")
         )
 
         first_verifier = benchmark_summary[0]["verifier"]
-        benchmark = Benchmark.objects.filter(verification_task=vt, verifier=first_verifier).first()
+        benchmark = Benchmark.objects.filter(verification_task=vt, verifier=first_verifier).order_by("-raw_score", "cpu", "memory").first()
         if benchmark is None:
             continue
-
-
 
         summary.add_result(
             verification_task=vt,

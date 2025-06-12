@@ -21,7 +21,7 @@ def evaluate_category_best_verifier(vts_test: list[int]) -> EvaluationStrategySu
     summary = EvaluationStrategySummary()
     
     for vt in VerificationTask.objects.filter(id__in=vts_test).select_related('category'):
-        v = category_verifiers.get(vt.category_id, None)
+        v = category_verifiers.get(vt.category_id)
         b = Benchmark.objects.filter(
             verification_task=vt,
             verifier=v

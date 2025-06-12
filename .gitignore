@@ -12,3 +12,6 @@ env/
 .env
 .vscode/
 jobs/
+
+*.parquet
+*.pt

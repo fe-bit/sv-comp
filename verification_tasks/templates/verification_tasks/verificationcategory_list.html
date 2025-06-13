@@ -4,14 +4,7 @@
 {% block title %}Verification Tasks{% endblock %}
 
 {% block content %}
-    <h1>Verification Tasks</h1>
-    <!-- Category Filter Dropdown -->
-    <div class="mb-3">
-        <label for="categoryFilter" class="form-label">Filter by Category:</label>
-        <select id="categoryFilter" class="form-select">
-            <option value="all">All</option>
-        </select>
-    </div>
+    <h1>Verification Categories</h1>
     <!-- Row count label -->
     <div class="mb-3">
         <span id="rowCountLabel" class="badge bg-primary"></span>
@@ -21,22 +14,20 @@
         <thead>
             <tr>
                 <th>#</th>
-                <th>Category</th>
                 <th>Name</th>
                 <th>Best Verifier</th>
             </tr>
         </thead>
         <tbody>
-            {% for task in tasks %}
+            {% for vc in verification_categories %}
                 <tr data-category="{{ task.category.name }}">
                     <td>{{ forloop.counter }}</td>
-                    <td>{{ task.category.name }}</td>
-                    <td><a href="{% url 'verification_task_detail' id=task.id %}">{{ task.name }}</a></td>
-                    <td>{{task.best_benchmark.verifier.name |default:'-'}}</td>
+                    <td><a href="{% url 'verification_category_detail' category_id=vc.id %}">{{ vc.name }}</a></td>
+                    <td>{{vc.best_verifier |default:'-'}}</td>
                 </tr>
             {% empty %}
                 <tr>
-                    <td colspan="3">No verification tasks available.</td>
+                    <td colspan="3">No verification categories available.</td>
                 </tr>
             {% endfor %}
         </tbody>

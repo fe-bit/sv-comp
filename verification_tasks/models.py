@@ -4,9 +4,8 @@ from pathlib import Path
 import yaml
 from typing import Optional, TYPE_CHECKING
 import re
-
-if TYPE_CHECKING:
-    from verifiers.models import Verifier
+from verifiers.models import Verifier
+    
 
 
 def clean_svcomp_i_file_further(code):
@@ -278,32 +277,59 @@ class VerificationCategory(models.Model):
         return self.name
 
     def best_verifier(self) -> Optional["Verifier"]:
-        best_verifier_data = self.verifier_ranking().first()
-        if best_verifier_data is not None:
-            from verifiers.models import Verifier
-            return Verifier.objects.get(name=best_verifier_data['verifier__name'])
-        else:
+        best_verifier_data = self.verifier_ranking()
+        if len(best_verifier_data) == 0:
             return None
+        best_verifier_data = best_verifier_data[0]  # Get the top verifier
+        return Verifier.objects.get(name=best_verifier_data['verifier__name']) if best_verifier_data else None
         
-    def verifier_ranking(self):
+    def verifier_task_summary(self, verifier_name):
+        """Get summary of a specific verifier's performance grouped by verification task"""
         from benchmarks.models import Benchmark
-
-        best_verifier_data = (
+        
+        task_summary = (
             Benchmark.objects
-            .filter(verification_task__category=self)
-            .values('verifier__name')
+            .filter(verification_task__category=self, verifier__name=verifier_name)
+            .values('verification_task__id')
             .annotate(
                 count=Count('id'),
+                avg_score=Avg('raw_score'),
                 sum_score=Sum('raw_score'),
-                avg_score_per_benchmark=Avg('raw_score'),
                 avg_cpu=Avg('cpu'),
                 avg_memory=Avg('memory'),
                 correct_count=Count('id', filter=Q(is_correct=True)),
-                vts_covered=Count('verification_task', distinct=True),
+                total_benchmarks=Count('id'), 
+                verifier__name=models.F('verifier__name'),
             )
-            .order_by('-avg_score_per_benchmark', "-correct_count", "avg_cpu", "avg_memory", 'verifier__name')
         )
-        return best_verifier_data
+        
+        return task_summary
+
+    def verifier_ranking(self):
+        """Get summary of all verifiers' performance grouped by verification task"""
+        from benchmarks.models import Benchmark
+        results = []
+        for v in Verifier.objects.all():
+            if not Benchmark.objects.filter(verification_task__category=self, verifier=v).exists():
+                continue
+            verifier_task_summary = self.verifier_task_summary(v.name)
+            aggregated_summary = verifier_task_summary.aggregate(
+                total_benchmarks=Sum('count'),
+                sum_of_avg_scores=Sum('avg_score'),  # Sum of all average scores per task
+                total_sum_score=Sum('sum_score'),
+                avg_cpu_across_tasks=Avg('avg_cpu'),
+                avg_memory_across_tasks=Avg('avg_memory'),
+                total_correct_count=Sum('correct_count'),
+                task_count=Count('verification_task__id'),
+            )
+            aggregated_summary['verifier__name'] = v.name
+            aggregated_summary["vts_covered"] = verifier_task_summary.count()
+            aggregated_summary["correct_accuracy"] = aggregated_summary['total_correct_count'] / aggregated_summary['total_benchmarks'] if aggregated_summary['total_benchmarks'] > 0 else 0
+            aggregated_summary["avg_score_per_benchmark"] = aggregated_summary['sum_of_avg_scores'] / aggregated_summary['vts_covered'] if aggregated_summary['total_benchmarks'] > 0 else 0
+            results.append(aggregated_summary)
+
+        results = sorted(results, key=lambda x: x['sum_of_avg_scores'], reverse=True)
+        return results
 
 class VerificationSubcategory(models.Model):
     name = models.CharField(max_length=255)

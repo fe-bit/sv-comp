@@ -21,6 +21,10 @@ def get_codet5p_embedder_collection():
     client = PersistentClient(path="./chroma/chroma_db_codet5p")
     return client.get_or_create_collection(name="code_chunks", embedding_function=None)
 
+def get_qwen_embedder_collection():
+    client = PersistentClient(path="./chroma/chroma_db_qwen")
+    return client.get_or_create_collection(name="code_chunks", embedding_function=None)
+
 def get_train_collection(in_memory=False):
     if in_memory:
         client = Client()

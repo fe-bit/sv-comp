@@ -11,9 +11,7 @@ from verification_tasks.embedding.config import get_test_collection, get_train_c
 from verification_tasks.embedding.helpers import delete_entries_in_collection, transfer_entries
 from verification_tasks.models import VerificationTask, VerificationCategory
 from verification_tasks.embedding.embedders.codet5p_embedder import CodeT5pEmbedder
-from .strategy.xgboost_predict import evaluate_xgboost_predict
 from .strategy.embed_and_predict import evaluate_embed_and_predict
-from .strategy.lgbm_predict import evaluate_lgbm_predict
 
 class Command(BaseCommand):
     help = "Closes the specified poll for voting"
@@ -39,7 +37,6 @@ class Command(BaseCommand):
         print("Train set size:", train_collection.count())
         print("Test set size:", test_collection.count())
 
-        # xgboost_predict_summary = evaluate_xgboost_predict(vts_test, vts_train, train_collection, test_collection)
         embed_predict_summary = evaluate_embed_and_predict(vts_test, test_collection)
         
         knn_1_best_summary = evaluate_knn_1_best_verifier(vts_test, train_collection, test_collection)
@@ -63,7 +60,6 @@ class Command(BaseCommand):
             ("CategoryBest", category_summary), 
             ("KNN1", knn_1_best_summary), 
             ("KNN5", knn_5_best_summary),
-            # ("XGBoost", xgboost_predict_summary),
             ("EmbedAndPredict", embed_predict_summary),
         ]:
             for vt_id, b_id in zip(summary.verification_tasks, summary.benchmarks):
@@ -97,7 +93,6 @@ class Command(BaseCommand):
             category_summary.model_dump(),
             knn_1_best_summary.model_dump(),
             knn_5_best_summary.model_dump(),
-            # xgboost_predict_summary.model_dump(),
             embed_predict_summary.model_dump(),
         ], 
         index=[
@@ -105,7 +100,6 @@ class Command(BaseCommand):
             "CategoryBest",
             "KNN-1",
             "KNN-5",
-            # "XGBoost",
             "EmbedAndPredict",
         ])
         df["b-length"] = df["benchmarks"].apply(lambda x: len(x))

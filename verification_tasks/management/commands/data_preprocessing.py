@@ -14,7 +14,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         data = []
-        benchmarks = Benchmark.objects.filter(verifier_id=4).values_list( "verifier_id", "raw_score", "cpu", "memory", "is_correct", "verification_task_id", "verification_task__category_id").order_by("verification_task_id", "verifier_id")
+        benchmarks = Benchmark.objects.all().values_list( "verifier_id", "raw_score", "cpu", "memory", "is_correct", "verification_task_id", "verification_task__category_id").order_by("verification_task_id", "verifier_id")
         collection = get_codet5p_embedder_collection()
         all_entries = collection.get(include=["embeddings"])
         embedding_mapping = {id: embedding for id, embedding in zip(all_entries["ids"], all_entries["embeddings"])}

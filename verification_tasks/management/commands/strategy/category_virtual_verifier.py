@@ -20,16 +20,16 @@ def evaluate_category_best_verifier(vts_test: list[int]) -> EvaluationStrategySu
 
     summary = EvaluationStrategySummary()
     
-    for vt in tqdm(VerificationTask.objects.filter(id__in=vts_test).select_related('category'), desc="Processing Category Best"):
-        v = category_verifiers.get(vt.category_id)
+    for vt_pk, category_id in tqdm(VerificationTask.objects.filter(id__in=vts_test).values_list("pk", "category__id"), desc="Processing Category Best"):
+        v = category_verifiers.get(category_id)
         b = Benchmark.objects.filter(
-            verification_task=vt,
+            verification_task__pk=vt_pk,
             verifier=v
         ).order_by("-raw_score", "cpu", "memory").first()
         
         if b is None:
             continue
-
+        vt = VerificationTask.objects.get(pk=vt_pk)
         summary.add_result(
             verification_task=vt,
             benchmark=b

@@ -99,7 +99,7 @@ def save_all_pages(url: str, output_dir: str = "tables", overwrite:bool=False):
     print(f"Starting to scrape pages of {url}...")
     while True:
         # Wait for the table to load
-        wait.until(EC.presence_of_element_located((By.CLASS_NAME, "main-table")))
+        wait.until(EC.presence_of_element_located((By.CLASS_NAME, "table-content")))
 
         # Save current page
         html_content = driver.page_source
@@ -125,7 +125,7 @@ def save_all_pages(url: str, output_dir: str = "tables", overwrite:bool=False):
         next_button.click()
 
         # Optional: Wait for a status change or a brief pause to allow content to load
-        time.sleep(2)
+        time.sleep(5)
         page_num += 1
         prev_page = soup.prettify()
 

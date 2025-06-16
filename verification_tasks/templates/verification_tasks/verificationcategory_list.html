@@ -15,7 +15,6 @@
             <tr>
                 <th>#</th>
                 <th>Name</th>
-                <th>Best Verifier</th>
             </tr>
         </thead>
         <tbody>
@@ -23,7 +22,6 @@
                 <tr data-category="{{ task.category.name }}">
                     <td>{{ forloop.counter }}</td>
                     <td><a href="{% url 'verification_category_detail' category_id=vc.id %}">{{ vc.name }}</a></td>
-                    <td>{{vc.best_verifier |default:'-'}}</td>
                 </tr>
             {% empty %}
                 <tr>

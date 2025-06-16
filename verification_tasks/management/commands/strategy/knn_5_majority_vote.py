@@ -1,21 +1,18 @@
-from collections import Counter
 from verification_tasks.models import VerificationTask
 from .data import EvaluationStrategySummary
 from verification_tasks.embedding.query import query_verification_task
-from verification_tasks.utils import get_virtually_best_benchmark
 from benchmarks.models import Benchmark
 from django.db.models import Count, Avg, Sum
 from tqdm import tqdm
-from verification_tasks.embedding.config import get_test_collection, get_collection, get_train_collection
 
 
 
-def evaluate_knn_5_majority_vote_best_verifier(vts_test: list[int], train_collection, test_collection) -> EvaluationStrategySummary:
+def evaluate_knn_majority_vote_best_verifier(vts_test: list[int], train_collection, test_collection, knn: int=5) -> EvaluationStrategySummary:
     summary = EvaluationStrategySummary()
-    for vt_id in tqdm(vts_test, desc="Processing KNN-5 Majority Vote"):
+    for vt_id in tqdm(vts_test, desc=f"Processing KNN-{str(knn)} Majority Vote"):
         # Get 5 closest verification tasks
         vt = VerificationTask.objects.get(id=vt_id)
-        vt_closest = query_verification_task(vt, n_results=5, collection=test_collection, collection_query=train_collection)
+        vt_closest = query_verification_task(vt, n_results=knn, collection=test_collection, collection_query=train_collection)
         if vt_closest is None:
             continue
 
@@ -27,19 +24,17 @@ def evaluate_knn_5_majority_vote_best_verifier(vts_test: list[int], train_collec
             benchmarks
             .values('verifier')
             .annotate(
-                correct_count=Count('is_correct'),
+                total_score=Sum('raw_score'),
                 avg_cpu=Avg('cpu'),
                 avg_memory=Avg('memory')
             )
-            .order_by('-correct_count', "avg_cpu", "avg_memory")
+            .order_by('-total_score', "avg_cpu", "avg_memory")
         )
 
         first_verifier = benchmark_summary[0]["verifier"]
-        benchmark = Benchmark.objects.filter(verification_task=vt, verifier=first_verifier).first()
+        benchmark = Benchmark.objects.filter(verification_task=vt, verifier=first_verifier).order_by("-raw_score", "cpu", "memory").first()
         if benchmark is None:
             continue
-
-
 
         summary.add_result(
             verification_task=vt,

@@ -22,14 +22,14 @@ class BenchmarkManager(models.Manager):
 class Benchmark(models.Model):
     verification_task = models.ForeignKey(VerificationTask, on_delete=models.CASCADE)
     verifier = models.ForeignKey(Verifier, on_delete=models.CASCADE)
+    # run_name = models.CharField(max_length=255, blank=True, null=True)
+    test_date = models.DateTimeField()
     
     status = models.CharField(max_length=50)
-    raw_score = models.TextField(blank=True, null=True)  # Raw core dump or output from the verifier
+    raw_score = models.IntegerField() # -64 refers to blank entry that is worse than false one
     cpu = models.FloatField(blank=True, null=True)  # CPU time in seconds
     memory = models.FloatField(blank=True, null=True)  # Memory usage in MB
-
-    test_date = models.DateTimeField()
-        
+  
     is_correct = models.BooleanField(default=False, help_text="Indicates if the verification result is correct based on the expected result of the task.")
     status_display = models.CharField(
         max_length=12,

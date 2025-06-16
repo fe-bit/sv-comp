@@ -1,48 +1,55 @@
 from django.core.management.base import BaseCommand
+from django.db import models
 from .strategy.category_virtual_verifier import evaluate_category_best_verifier
 from .strategy.best_virtual_verifier import evaluate_virtually_best_verifier
-from .strategy.knn_1_embed import evaluate_knn_1_best_verifier
-from .strategy.knn_5_majority_vote import evaluate_knn_5_majority_vote_best_verifier
-from .strategy.knn_5_distance_vote import evaluate_knn_5_distance_weighted
-from .strategy.data import get_train_test_data
 import pandas as pd
 from benchmarks.models import Benchmark
-from verification_tasks.embedding.embedder import embed_verifications_tasks
-from verification_tasks.embedding.config import get_collection, get_test_collection, get_train_collection
-from verification_tasks.embedding.helpers import delete_entries_in_collection, transfer_entries
 from verification_tasks.models import VerificationTask, VerificationCategory
+from collections import defaultdict, Counter
+from .strategy.data import get_train_test_data
+
 
 class Command(BaseCommand):
     help = "Closes the specified poll for voting"
 
     def handle(self, *args, **options):
-        vts = [i[0] for i in VerificationTask.objects.all().values_list("id")]
+        _, vts = get_train_test_data(test_size=1.0, shuffle=False, use_c_files_only=False)
 
         category_summary = evaluate_category_best_verifier(vts)
-        benchmarks = [Benchmark.objects.get(id=i) for i in category_summary.benchmarks]
-        verification_tasks = [VerificationTask.objects.get(id=i) for i in category_summary.verification_tasks]
+        
+        # Fetch benchmarks and verification tasks with related data in bulk
+        benchmarks = Benchmark.objects.filter(
+            id__in=category_summary.benchmarks
+        ).select_related('verification_task__category', 'verifier')
+        
+        benchmark_dict = {b.id: b for b in benchmarks}
+        
+        # Group benchmarks by category using defaultdict
+        group = defaultdict(list)
+        for benchmark_id in category_summary.benchmarks:
+            benchmark = benchmark_dict[benchmark_id]
+            group[benchmark.verification_task.category].append(benchmark)
 
-        group : dict[VerificationCategory, list[Benchmark]]= {}
-        for vt, b in zip(verification_tasks, benchmarks):
-            if vt.category not in group:
-                group[vt.category] = []
-            group[vt.category].append(b)
+        # Get verification task counts per category in one query
+        vt_counts = dict(VerificationTask.objects.values('category').annotate(
+            count=models.Count('id')
+        ).values_list('category', 'count'))
 
         # Create a summary for each category
         category_summaries = []
         for category, benchmarks in group.items():
             data = {
                 "category_name": category.name,
-                "correct_count": sum([b.is_correct for b in benchmarks]),
+                "verifier": benchmarks[0].verifier.name,
+                "correct_count": sum(1 for b in benchmarks if b.is_correct),
                 "number_benchmarks": len(benchmarks),
-                "number_of_vts": VerificationTask.objects.filter(category=category).count(),
-                # "total_score": sum([b.raw_score for b in benchmarks]),
-                "total_cpu": sum([b.cpu if b.cpu is not None else 600 for b in benchmarks]),
-                "total_memory": sum([b.memory if b.memory is not None else 600 for b in benchmarks]),                
+                "number_of_vts": vt_counts.get(category.id, 0),
+                "total_cpu": sum(b.cpu if b.cpu is not None else 600 for b in benchmarks),
+                "total_memory": sum(b.memory if b.memory is not None else 600 for b in benchmarks),
             }
             category_summaries.append(data)
 
         df = pd.DataFrame.from_records(category_summaries)
-        df["% Correct"] = df.apply(lambda x: x["correct_count"] / x["number_of_vts"], axis=1)
+        df["% Correct"] = df["correct_count"] / df["number_of_vts"]
 
         print(df)

@@ -2,7 +2,16 @@ db.sqlite3
 *.pyc
 tables/
 *.csv
-chroma_db/
+
+chroma/
+
 output/
 *.ipynb
 .DS_STORE
+env/
+.env
+.vscode/
+jobs/
+
+*.parquet
+*.pt

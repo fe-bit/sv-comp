@@ -5,9 +5,14 @@ from typing import List, Optional
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support import expected_conditions as EC
 import time
 from .reader import VerificationResults, VerifierResult, Verifier, VerificationTask, get_file
+import tempfile
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
+from bs4.element import Tag
 
 
 def get_table(soup: BeautifulSoup) -> VerificationResults:
@@ -41,10 +46,15 @@ def get_table(soup: BeautifulSoup) -> VerificationResults:
 
 
 
-def get_table_headers(soup: BeautifulSoup) -> list:
+def get_table_headers(soup: BeautifulSoup) -> List:
     table_header = soup.find('div', class_='table-header')
+    if not table_header or not hasattr(table_header, 'find_all'):
+        raise ValueError("Table header not found in the provided soup object.")
+    if not isinstance(table_header, Tag):
+        raise ValueError("Table header is not a valid Tag element.")
     headers = [header.text.strip() for header in table_header.find_all('div', class_="th header outer undefined")]
     return headers
+
 
 def get_table_rows(soup: BeautifulSoup) -> list:
     table = soup.find("div", class_="table-body")
@@ -65,7 +75,20 @@ def save_all_pages(url: str, output_dir: str = "tables", overwrite:bool=False):
         print(f"URL already scraped: {url}")
         return None
 
-    driver = webdriver.Chrome()
+    temp_profile = tempfile.mkdtemp()
+
+    options = Options()
+    options.add_argument(f"--user-data-dir={temp_profile}")
+    options.add_argument("--no-first-run")
+    options.add_argument("--no-default-browser-check")
+    options.add_argument("--disable-extensions")
+    options.add_argument("--start-maximized")
+    options.add_experimental_option("detach", True)  # Keep Chrome open after script
+    options.add_argument("--headless=new")
+
+    service = Service(ChromeDriverManager().install())
+
+    driver = webdriver.Chrome(service=service, options=options)
     driver.get(url)
     wait = WebDriverWait(driver, 20)
 
@@ -73,9 +96,10 @@ def save_all_pages(url: str, output_dir: str = "tables", overwrite:bool=False):
     prev_page = None
 
     all_verification_results = VerificationResults()
+    print(f"Starting to scrape pages of {url}...")
     while True:
         # Wait for the table to load
-        wait.until(EC.presence_of_element_located((By.CLASS_NAME, "main-table")))
+        wait.until(EC.presence_of_element_located((By.CLASS_NAME, "table-content")))
 
         # Save current page
         html_content = driver.page_source
@@ -92,8 +116,7 @@ def save_all_pages(url: str, output_dir: str = "tables", overwrite:bool=False):
         next_button = driver.find_element(By.ID, "pagination-next")
         next_class = next_button.get_attribute("class")
 
-        # Check if "Next" is disabled
-        if "disabled" in next_class.lower():
+        if next_class is None or "disabled" in next_class.lower():
             print("Reached last page.")
             break
 
@@ -102,7 +125,7 @@ def save_all_pages(url: str, output_dir: str = "tables", overwrite:bool=False):
         next_button.click()
 
         # Optional: Wait for a status change or a brief pause to allow content to load
-        time.sleep(2)
+        time.sleep(5)
         page_num += 1
         prev_page = soup.prettify()
 

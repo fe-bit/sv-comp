@@ -1,9 +1,9 @@
-from django.core.management.base import BaseCommand, CommandError
-from verification_tasks.models import VerificationCategory, VerificationTask
-from verification_tasks.embedding.embedder import embed_verifications_tasks
-from verification_tasks.embedding.query import query_verification_task, query
+from django.core.management.base import BaseCommand
+from django.db.models import Q, Count
 from benchmarks.models import Benchmark
+from verification_tasks.models import VerificationTask, Status
 import csv
+import os
 from tqdm import tqdm
 
 
@@ -11,26 +11,44 @@ class Command(BaseCommand):
     help = "Closes the specified poll for voting"
 
     def handle(self, *args, **options):
-        outliers: list[Benchmark] = []
-        for b in tqdm(Benchmark.objects.all()):
-            if b.raw_score is None or b.raw_score == "":
-                outliers.append(b)
-            elif int(b.raw_score) > 2 or int(b.raw_score) < 0:
-                outliers.append(b)
-            elif b.is_correct and int(b.raw_score) < 0:
-                outliers.append(b)
-            elif not b.is_correct and int(b.raw_score) > 0:
-                outliers.append(b)
+        outliers = Benchmark.objects.all()
+        
+        unique_scores_with_count = outliers.values('raw_score').annotate(
+            count=Count('raw_score')
+        ).order_by('-count', 'raw_score')
+        
+        print("Unique scores in outliers (with count, ordered by frequency):")
+        for score_data in unique_scores_with_count:
+            print(f"  Score: {score_data['raw_score']} => Count: {score_data['count']}")
+                
+        # print(f"Found {outliers.count()} outliers of {Benchmark.objects.count()} Benchmarks.")
+        # os.makedirs("output", exist_ok=True)
+        
+        # with open("output/outlier_benchmarks.csv", "w") as f:
+        #     writer = csv.writer(f)
+        #     writer.writerow(['benchmark_id', "verification_task_id", "verification_category", "verification_task_name", 'raw_score', "is_correct"])
+            
+        #     # Use values_list to fetch only needed fields and write directly
+        #     outlier_data = outliers.select_related('verification_task', "verification_task__category", "verifier").values_list(
+        #         'pk', 
+        #         'verification_task__pk', 
+        #         "verification_task__category__name",
+        #         'verification_task__name', 
+        #         "verifier__name",
+        #         'raw_score', 
+        #         'is_correct'
+        #     )
+            
+        #     writer.writerows(outlier_data)
 
-        print(f"Found {len(outliers)} outliers of {Benchmark.objects.all().count()} Benchmarks.")
-        with open("output/outliers.csv", "w") as f:
-            writer = csv.writer(f)
-            writer.writerow(['benchmark_id', "verification_task_id", "verification_task_name", 'raw_score', "is_correct"])
-            for b in outliers:                
-                writer.writerow([
-                    str(b.id),
-                    str(b.verification_task.id),
-                    b.verification_task.name,
-                    b.raw_score,
-                    b.is_correct,
-                ])
+        
+        # with open("output/outlier_verification_tasks.csv", "w") as f:
+        #     writer = csv.writer(f)
+        #     writer.writerow(['verification_task_id', "verificaiton_category", "verification_task_name", "expected_result"])
+        #     for vt in VerificationTask.objects.filter(expected_result__in=[Status.INVALID_TASK, Status.UNKNOWN]):               
+        #         writer.writerow([
+        #             str(vt.pk),
+        #             vt.category.name,
+        #             vt.name,
+        #             vt.expected_result,
+        #         ])

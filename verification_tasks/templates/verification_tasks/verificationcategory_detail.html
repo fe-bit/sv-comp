@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ category.name }} - Verification Tasks{% endblock %}
+
+{% block content %}
+    <h1>{{ category.name }}</h1>
+
+    <!-- Row count label -->
+    <p>Count Verification Tasks: {{ tasks.count }}</p>
+    <p>Count Benchmarks: {{benchmarks.count}}</p>
+
+    <!-- Verifier Summary Section -->
+    <h2 class="mt-5">Verifier Summary</h2>
+    <table class="table table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Verifier</th>
+                <th>Total Benchmarks</th>
+                <th>Sum Score</th>
+                <th>Avg Score</th>
+                <th>Correct Count</th>
+                <th>Unique VTs</th>
+                <th>Avg CPU (s)</th>
+                <th>Avg Memory (MB)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for verifier in verifier_summary %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ verifier.verifier__name }}</td>
+                    <td>{{ verifier.total_benchmarks }}</td>
+                    <td>{{ verifier.total_sum_score|floatformat:2|default:'-' }}</td>
+                    <td>{{ verifier.sum_of_avg_scores|floatformat:2|default:'-'}} ({{verifier.avg_score_per_benchmark|floatformat:2}})</td>
+                    <td>{{ verifier.total_correct_count|default:'0' }} ({{verifier.correct_accuracy|floatformat:2}})</td>
+                    <td>{{ verifier.vts_covered|default:'0'}}</td>
+                    <td>{{ verifier.avg_cpu_across_tasks|floatformat:2|default:'-' }}</td>
+                    <td>{{ verifier.avg_memory_across_tasks|floatformat:2|default:'-' }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="7">No verifier data available for this category.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

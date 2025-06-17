@@ -12,20 +12,23 @@ from verification_tasks.embedding.helpers import delete_entries_in_collection, t
 from verification_tasks.models import VerificationTask, VerificationCategory
 from verification_tasks.embedding.embedders.codet5p_embedder import CodeT5pEmbedder
 from .strategy.embed_and_predict import evaluate_embed_and_predict
+from .strategy.knn_5_distance_vote import evaluate_knn_distance_weighted
+
 
 class Command(BaseCommand):
     help = "Closes the specified poll for voting"
 
     def handle(self, *args, **options):
-        # categories=VerificationCategory.objects.filter(id__in=[1,3])
-        # vts_train, vts_test = get_train_test_data(test_size=0.1, random_state=42, shuffle=False, use_c_files_only=False)
-        vts_train, vts_test = get_train_test_data(test_size=0.1, random_state=42, 
-                                shuffle=False, use_c_files_only=False,
-                                # categories=VerificationCategory.objects.filter(id__in=[1, 3])
+        vts_train, vts_test = get_train_test_data(
+            test_size=0.1, 
+            random_state=42, 
+            shuffle=False, 
+            use_c_files_only=True,
+            categories=VerificationCategory.objects.filter(id__in=[1,3])
         )
 
         main_collection, train_collection, test_collection = get_codet5p_embedder_collection(), get_train_collection(in_memory=True), get_test_collection(in_memory=True)
-        embed_verifications_tasks(vts_train + vts_test, CodeT5pEmbedder(), main_collection)
+        # embed_verifications_tasks(vts_train + vts_test, CodeT5pEmbedder(), main_collection)
         print(len(vts_train), len(vts_test))
 
         delete_entries_in_collection(train_collection, vts_test)
@@ -45,6 +48,7 @@ class Command(BaseCommand):
         knn_5_best_summary = evaluate_knn_majority_vote_best_verifier(vts_test, train_collection, test_collection, knn=3)
         knn_5_best_summary.write_to_csv("strategy_knn_5_verifier.csv")
 
+        weighted_knn_summary = evaluate_knn_distance_weighted(vts_test, train_collection, test_collection, knn=3)
         
 
         category_summary = evaluate_category_best_verifier(vts_test)
@@ -60,6 +64,7 @@ class Command(BaseCommand):
             ("CategoryBest", category_summary), 
             ("KNN1", knn_1_best_summary), 
             ("KNN5", knn_5_best_summary),
+            ("KNN5Weighted", weighted_knn_summary),
             ("EmbedAndPredict", embed_predict_summary),
         ]:
             for vt_id, b_id in zip(summary.verification_tasks, summary.benchmarks):
@@ -93,6 +98,7 @@ class Command(BaseCommand):
             category_summary.model_dump(),
             knn_1_best_summary.model_dump(),
             knn_5_best_summary.model_dump(),
+            weighted_knn_summary.model_dump(),
             embed_predict_summary.model_dump(),
         ], 
         index=[
@@ -100,6 +106,7 @@ class Command(BaseCommand):
             "CategoryBest",
             "KNN-1",
             "KNN-5",
+            "KNN-5Weighted",
             "EmbedAndPredict",
         ])
         df["b-length"] = df["benchmarks"].apply(lambda x: len(x))

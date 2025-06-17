@@ -9,7 +9,7 @@ from django.db.models import Count, Avg, Sum, Q
 from django.db import models
 
 
-def evaluate_knn_5_distance_weighted(vts_test: list[int], train_collection, test_collection, knn: int=5) -> EvaluationStrategySummary:
+def evaluate_knn_distance_weighted(vts_test: list[int], train_collection, test_collection, knn: int=5) -> EvaluationStrategySummary:
     summary = EvaluationStrategySummary()
     
     for vt_id in tqdm(vts_test, desc=f"Processing KNN-{str(knn)} Distance-Weighted"):
@@ -24,7 +24,7 @@ def evaluate_knn_5_distance_weighted(vts_test: list[int], train_collection, test
             vt_c_obj = vt_c["verification_task"]
             distance = vt_c["distance"] + 1e-10
             weight = 1.0 / distance
-            benchmarks = Benchmark.objects.filter(verification_task=vt_c_obj, is_correct=True)
+            benchmarks = Benchmark.objects.filter(verification_task=vt_c_obj)
             for bm in benchmarks:
                 verifier = bm.verifier
                 weighted_score = bm.raw_score * weight

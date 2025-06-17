@@ -12,7 +12,7 @@ from verification_tasks.embedding.helpers import delete_entries_in_collection, t
 from verification_tasks.models import VerificationTask, VerificationCategory
 from verification_tasks.embedding.embedders.qwen_embedder import QwenEmbedder
 from .strategy.embed_and_predict import evaluate_embed_and_predict
-from .strategy.knn_5_distance_vote import evaluate_knn_5_distance_weighted
+from .strategy.knn_5_distance_vote import evaluate_knn_distance_weighted
 
 class Command(BaseCommand):
     help = "Closes the specified poll for voting"
@@ -45,7 +45,7 @@ class Command(BaseCommand):
         knn_5_best_summary = evaluate_knn_majority_vote_best_verifier(vts_test, train_collection, test_collection, knn=3)
         knn_5_best_summary.write_to_csv("strategy_knn_5_verifier.csv")
 
-        weighted_knn_summary = evaluate_knn_5_distance_weighted(vts_test, train_collection, test_collection, knn=3)
+        weighted_knn_summary = evaluate_knn_distance_weighted(vts_test, train_collection, test_collection, knn=3)
 
         category_summary = evaluate_category_best_verifier(vts_test)
         category_summary.write_to_csv("strategy_category_best_verifier.csv")

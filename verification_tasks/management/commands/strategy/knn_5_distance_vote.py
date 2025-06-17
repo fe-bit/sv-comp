@@ -5,6 +5,8 @@ from verification_tasks.embedding.query import query_verification_task
 from verification_tasks.utils import get_virtually_best_benchmark
 from benchmarks.models import Benchmark
 from tqdm import tqdm
+from django.db.models import Count, Avg, Sum, Q
+from django.db import models
 
 
 def evaluate_knn_5_distance_weighted(vts_test: list[int], train_collection, test_collection, knn: int=5) -> EvaluationStrategySummary:
@@ -17,29 +19,22 @@ def evaluate_knn_5_distance_weighted(vts_test: list[int], train_collection, test
         if vt_closest is None:
             continue
         
-        # Extract best verifiers from closest tasks
-        verifiers = {}
+        verifier_scores = {}
         for vt_c in vt_closest:
             vt_c_obj = vt_c["verification_task"]
-            # Convert distance to weight (closer tasks have higher weight)
-            # Add small epsilon to avoid division by zero
             distance = vt_c["distance"] + 1e-10
-            weight = 1.0 / distance  # Inverse distance weighting
-            
-            benchmarks_of_vt_closest = Benchmark.objects.filter(verification_task=vt_c_obj)
-            best_benchmark = get_virtually_best_benchmark(benchmarks_of_vt_closest)
-            if best_benchmark is None:
-                continue
-
-            # Add weight to verifier's score
-            verifier = best_benchmark.verifier
-            verifiers[verifier] = verifiers.get(verifier, 0) + weight
+            weight = 1.0 / distance
+            benchmarks = Benchmark.objects.filter(verification_task=vt_c_obj, is_correct=True)
+            for bm in benchmarks:
+                verifier = bm.verifier
+                weighted_score = bm.raw_score * weight
+                verifier_scores[verifier] = verifier_scores.get(verifier, 0) + weighted_score
         
-        if not verifiers:
+        if not verifier_scores:
             continue
         
         # Find verifier with highest weight score
-        chosen_verifier = max(verifiers.items(), key=lambda x: x[1])[0]
+        chosen_verifier = max(verifier_scores.items(), key=lambda x: x[1])[0]
         
         # Get benchmark for the chosen verifier
         benchmark = Benchmark.objects.filter(

@@ -12,51 +12,55 @@ from verification_tasks.embedding.helpers import delete_entries_in_collection, t
 from verification_tasks.models import VerificationTask, VerificationCategory
 from verification_tasks.embedding.embedders.qwen_embedder import QwenEmbedder
 from .strategy.embed_and_predict import evaluate_embed_and_predict
+from .strategy.knn_5_distance_vote import evaluate_knn_5_distance_weighted
 
 class Command(BaseCommand):
     help = "Closes the specified poll for voting"
 
     def handle(self, *args, **options):
         vts_train, vts_test = get_train_test_data(
-            test_size=0.1, 
-            random_state=42, 
-            shuffle=False, 
+            test_size=0.1,
+            random_state=42,
+            shuffle=False,
             use_c_files_only=True,
-            categories=VerificationCategory.objects.filter(id__in=[1])
+            categories=VerificationCategory.objects.filter(id__in=[1,3])
         )
 
         main_collection, train_collection, test_collection = get_qwen_embedder_collection(), get_train_collection(in_memory=True), get_test_collection(in_memory=True)
-        embed_verifications_tasks(vts_train + vts_test, QwenEmbedder(), main_collection)
+        # embed_verifications_tasks(vts_test+vts_train, QwenEmbedder(), main_collection)
         print(len(vts_train), len(vts_test))
 
         delete_entries_in_collection(train_collection, vts_test)
         delete_entries_in_collection(test_collection, vts_train)
-        
+
         transfer_entries(main_collection, train_collection, vts_train, batch_size=100)
         transfer_entries(main_collection, test_collection, vts_test, batch_size=100)
 
         print("Train set size:", train_collection.count())
         print("Test set size:", test_collection.count())
-        
+
         knn_1_best_summary = evaluate_knn_1_best_verifier(vts_test, train_collection, test_collection)
         knn_1_best_summary.write_to_csv("strategy_knn_1_verifier.csv")
 
         knn_5_best_summary = evaluate_knn_majority_vote_best_verifier(vts_test, train_collection, test_collection, knn=3)
         knn_5_best_summary.write_to_csv("strategy_knn_5_verifier.csv")
 
+        weighted_knn_summary = evaluate_knn_5_distance_weighted(vts_test, train_collection, test_collection, knn=3)
+
         category_summary = evaluate_category_best_verifier(vts_test)
         category_summary.write_to_csv("strategy_category_best_verifier.csv")
-        
+
         best_summary = evaluate_virtually_best_verifier(vts_test)
         best_summary.write_to_csv("strategy_best_virtually_verifier.csv")
 
         records = []
         vts = {}
         for strategy, summary in [
-            ("VirtuallyBest", best_summary), 
-            ("CategoryBest", category_summary), 
-            ("KNN1", knn_1_best_summary), 
+            ("VirtuallyBest", best_summary),
+            ("CategoryBest", category_summary),
+            ("KNN1", knn_1_best_summary),
             ("KNN5", knn_5_best_summary),
+            ("KNN5Weighted", weighted_knn_summary),
         ]:
             for vt_id, b_id in zip(summary.verification_tasks, summary.benchmarks):
                 if vt_id in vts:
@@ -64,7 +68,7 @@ class Command(BaseCommand):
                 else:
                     vt = VerificationTask.objects.get(id=vt_id)
                     vts[vt_id] = vt
-                
+
                 b = Benchmark.objects.get(id=b_id)
 
                 category = vt.category.name
@@ -85,22 +89,24 @@ class Command(BaseCommand):
         df_detail.to_csv("strategy_details.csv", index=False)
 
         df = pd.DataFrame(data=[
-            best_summary.model_dump(), 
+            best_summary.model_dump(),
             category_summary.model_dump(),
             knn_1_best_summary.model_dump(),
             knn_5_best_summary.model_dump(),
-        ], 
+            weighted_knn_summary.model_dump()
+        ],
         index=[
             "VirtuallyBest",
             "CategoryBest",
             "KNN-1",
             "KNN-5",
+            "KNN-5-Weighted"
         ])
         df["b-length"] = df["benchmarks"].apply(lambda x: len(x))
         df["vt-length"] = len(vts_test)
         # df["correct"] = df["benchmarks"].apply(lambda x: sum([Benchmark.objects.get(id=idx).is_correct for idx in x]))
         df = df[["total_score", "correct", "total_cpu", "total_memory", "b-length", "vt-length"]]
-        
+
         # Display all rows and columns
         pd.set_option('display.max_rows', None)
         pd.set_option('display.max_columns', None)
@@ -110,5 +116,5 @@ class Command(BaseCommand):
 
         # Optional: expand the display width to accommodate wide tables
         pd.set_option('display.width', 0)
-        
+
         print(df)

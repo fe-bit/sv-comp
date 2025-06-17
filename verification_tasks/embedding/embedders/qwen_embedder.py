@@ -29,7 +29,18 @@ class QwenEmbedder(Embedder):
         inputs = self.tokenizer.encode(code, return_tensors="pt", truncation=True, max_length=30000).to(self.device)
         with torch.no_grad():
             outputs = self.model(inputs)[0]
-            embedding = outputs.last_hidden_state.mean(dim=1)
-        return embedding.squeeze().cpu().numpy().astype(float).tolist()
+            embedding = outputs.mean(dim=1)
+            result = embedding.squeeze().cpu().numpy().astype(float).tolist()
+        
+        del inputs
+        del outputs
+        del embedding
+        if self.device.type in ['cuda', 'mps']:
+            if self.device.type == 'cuda':
+                torch.cuda.empty_cache()
+            elif self.device.type == 'mps':
+                torch.mps.empty_cache()
+
+        return result
         
 

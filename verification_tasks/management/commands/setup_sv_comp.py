@@ -77,7 +77,7 @@ def benchmarks(sv_comp: SVCOMP) -> None:
                 benchmarks[f"{verification_task.name} - {verifier_name}"] = test_date
             
             status_display = status_from_string(benchmark.status)
-            is_correct = verification_task.expected_result == status_display
+            
             try:
                 if benchmark.raw_core is None or benchmark.raw_core == "":
                     score = -64
@@ -85,7 +85,7 @@ def benchmarks(sv_comp: SVCOMP) -> None:
                     score = int(benchmark.raw_core)
             except ValueError:
                 score = -64
-            
+            is_correct = score > 0
             b = Benchmark(
                 verification_task=verification_task,
                 verifier=verifier,
